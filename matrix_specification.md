@@ -29,86 +29,57 @@ Matrix 定義了一套用於去中心化通訊的開放 API，
 
 ## 2. Introduction to the Matrix APIs
 
+Matrix 是一組開放的 API，
+用於開放聯邦的即時通訊（IM）、IP 語音（VoIP）和物聯網（IoT）通信，
+旨在創建和支持一個新的全球實時通信生態系統。
+其目的是為全球網路提供一個開放的去中心化 pubsub 層，
+用於安全地持久化和發布/訂閱 JSON 對象。
+這個規範是標準化 Matrix 生態系統中各組件相互通信所用 API 的持續結果。
 
-Matrix is a set of open APIs for open-federated Instant Messaging (IM),
- Voice over IP (VoIP) and Internet of Things (IoT) communication,
- designed to create and support a new global real-time communication
- ecosystem. The intention is to provide an open decentralised pubsub
- layer for the internet for securely persisting and
- publishing/subscribing JSON objects. This specification is the ongoing
- result of standardising the APIs used by the various components of the
- Matrix ecosystem to communicate with one another.
+> pubsub layer 是一種消息傳遞模式，發布者將消息發布到主題上，訂閱者訂閱主題以接收消息，實現系統間的解耦合和靈活通信。
 
+Matrix 試圖遵循的原則包括：
 
-The principles that Matrix attempts to follow are:
+* 務實的網絡友好 API（例如，基於 REST 的 JSON）
+* 保持簡單愚蠢原則
+  * 提供一個簡單的架構，並且第三方依賴最少。
+* 完全開放：
+  * 完全開放的聯邦 - 任何人都應該能夠參與全球 Matrix 網絡
+  * 完全開放的標準 - 公開記錄的標準，無知識產權或專利許可的障礙
+  * 完全開放的源代碼參考實現 - 自由許可的示例實現，無知識產權或專利許可的障礙
+* 賦予終端用戶權力
+  * 用戶應能夠選擇他們使用的服務器和客戶端
+  * 用戶應能夠控制其通信的隱私程度
+  * 用戶應確切知道他們的數據存儲位置
+* 完全去中心化 - 對話或整個網絡沒有單一控制點
+* 從歷史中學習以避免重蹈覆轍
+  * 盡量取 XMPP、SIP、IRC、SMTP、IMAP 和 NNTP (總之就是各種通訊協議)的最佳方面，同時避免其缺陷
 
+Matrix 提供的功能包括：
 
-* Pragmatic Web-friendly APIs (i.e. JSON over REST)
-* Keep It Simple & Stupid
-	+ provide a simple architecture with minimal third-party
-	 dependencies.
-* Fully open:
-	+ Fully open federation - anyone should be able to participate in
-	 the global Matrix network
-	+ Fully open standard - publicly documented standard with no IP or
-	 patent licensing encumbrances
-	+ Fully open source reference implementation - liberally-licensed
-	 example implementations with no IP or patent licensing
-	 encumbrances
-* Empowering the end-user
-	+ The user should be able to choose the server and clients they
-	 use
-	+ The user should be able to control how private their
-	 communication is
-	+ The user should know precisely where their data is stored
-* Fully decentralised - no single points of control over conversations
- or the network as a whole
-* Learning from history to avoid repeating it
-	+ Trying to take the best aspects of XMPP, SIP, IRC, SMTP, IMAP
-	 and NNTP whilst trying to avoid their failings
+* 創建和管理完全分佈式的聊天室，沒有單一的控制點或故障點
+* 在全球開放的聯邦服務器和服務網絡中，實現房間狀態的最終一致性和加密安全同步
+* 在房間內發送和接收可擴展的消息，並可選擇端到端加密
+* 可擴展的用戶管理（邀請、加入、離開、踢出、禁止），通過基於權限級別的用戶特權系統進行調解
+* 可擴展的房間狀態管理（房間命名、別名、主題、禁止）
+* 可擴展的用戶資料管理（頭像、顯示名稱等）
+* 管理用戶賬戶（註冊、登錄、登出）
+* 使用第三方 ID（3PIDs），如電子郵件地址、電話號碼、Facebook 帳號，來驗證、識別和發現 Matrix 上的用戶
+* 可信的身份服務器聯邦，用於：
+  * 發佈用戶公鑰進行公鑰基礎設施（PKI）
+  * 將 3PIDs 映射到 Matrix ID
 
+Matrix 的最終目標是成為一個普遍的消息層，
+用於在一組人、設備和服務之間同步任意數據，
+無論是即時消息、VoIP 通話設置，
+還是任何其他需要在 A 到 B 之間可靠和持久推送的對象，
+以可互操作和聯邦的方式進行。
 
-The functionality that Matrix provides includes:
+### 2.1 Spec Change Proposals
 
-
-* Creation and management of fully distributed chat rooms with no
- single points of control or failure
-* Eventually-consistent cryptographically secure synchronisation of
- room state across a global open network of federated servers and
- services
-* Sending and receiving extensible messages in a room with (optional)
- end-to-end encryption
-* Extensible user management (inviting, joining, leaving, kicking,
- banning) mediated by a power-level based user privilege system.
-* Extensible room state management (room naming, aliasing, topics,
- bans)
-* Extensible user profile management (avatars, display names, etc)
-* Managing user accounts (registration, login, logout)
-* Use of 3rd Party IDs (3PIDs) such as email addresses, phone numbers,
- Facebook accounts to authenticate, identify and discover users on
- Matrix.
-* Trusted federation of identity servers for:
-	+ Publishing user public keys for PKI
-	+ Mapping of 3PIDs to Matrix IDs
-
-
-The end goal of Matrix is to be a ubiquitous messaging layer for
- synchronising arbitrary data between sets of people, devices and
- services - be that for instant messages, VoIP call setups, or any other
- objects that need to be reliably and persistently pushed from A to B in
- an interoperable and federated manner.
-
-
-### Spec Change Proposals
-
-
-To propose a change to the Matrix Spec, see the explanations at
- [Proposals for Spec Changes to Matrix](/v1.11/proposals).
- 
-
+要提議對 Matrix 規範進行更改，請參見[對 Matrix 規範更改的提案](/v1.11/proposals)。
 
 ## 3. Architecture
-
 
 Matrix defines APIs for synchronising extensible JSON objects known as
  “events” between compatible clients, servers and services. Clients are
