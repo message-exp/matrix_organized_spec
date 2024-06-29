@@ -1,5 +1,8 @@
-
 # Matrix Specification
+
+<!-- markdownlint-disable -->
+<p style="font-size:14px; color:gray;">translate with GPT-4o</p>
+<!-- markdownlint-enable -->
 
 Matrix 定義了一套用於去中心化通訊的開放 API，
 適用於在全球開放的伺服器聯邦中安全地發布、持久化和訂閱數據[1]，
