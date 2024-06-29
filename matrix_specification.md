@@ -1,26 +1,19 @@
 
 # Matrix Specification
 
+Matrix 定義了一套用於去中心化通訊的開放 API，
+適用於在全球開放的伺服器聯邦中安全地發布、持久化和訂閱數據[1]，
+且無需單一控制點。
+其應用包括即時消息傳遞 (IM)、VoIP (網路語音) 、物聯網 (IoT) 通信，
+以及連接現有的通訊孤島——為新型開放實時通訊生態系統提供基礎。
 
-Matrix defines a set of open APIs for decentralised communication,
- suitable for securely publishing, persisting and subscribing to data
- over a global open federation of servers with no single point of
- control. Uses include Instant Messaging (IM), Voice over IP (VoIP)
- signalling, Internet of Things (IoT) communication, and bridging
- together existing communication silos - providing the basis of a new
- open real-time communication ecosystem.
+[1] 我真不知道怎麼翻比較好
 
+要提議對 Matrix 規範進行更改，請參閱[Matrix 規範更改提案的說明](/v1.11/proposals)。
 
-To propose a change to the Matrix Spec, see the explanations at
- [Proposals for Spec Changes to Matrix](/v1.11/proposals).
- 
+## 1. Matrix APIs
 
-
-## Matrix APIs
-
-
-The specification consists of the following parts:
-
+這個規範由以下部分組成：
 
 * [Client-Server API](/v1.11/client-server-api)
 * [Server-Server API](/v1.11/server-server-api)
@@ -30,17 +23,11 @@ The specification consists of the following parts:
 * [Room Versions](/v1.11/rooms)
 * [Appendices](/v1.11/appendices)
 
+此外，這個介紹頁面包含理解特定API所需的關鍵基礎訊息，包括[整體架構](#3-architecture)部分。
 
-Additionally, this introduction page contains the key baseline
- information required to understand the specific APIs, including the
- section the [overall architecture](#architecture).
+[Matrix API Viewer](https://matrix.org/docs/api/) 對於瀏覽Client-Server API非常有用。
 
-
-The [Matrix API Viewer](https://matrix.org/docs/api/) is useful for
- browsing the Client-Server API.
-
-
-## Introduction to the Matrix APIs
+## 2. Introduction to the Matrix APIs
 
 
 Matrix is a set of open APIs for open-federated Instant Messaging (IM),
@@ -120,7 +107,7 @@ To propose a change to the Matrix Spec, see the explanations at
  
 
 
-## Architecture
+## 3. Architecture
 
 
 Matrix defines APIs for synchronising extensible JSON objects known as
