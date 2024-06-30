@@ -16,27 +16,27 @@ Matrix 定義了一套用於去中心化通訊的開放 API，
 
 <!-- markdownlint-disable -->
 - [Matrix Specification](#matrix-specification)
-	- [1. Matrix APIs](#1-matrix-apis)
-	- [2. Introduction to the Matrix APIs](#2-introduction-to-the-matrix-apis)
-		- [2.1 Spec Change Proposals](#21-spec-change-proposals)
-	- [3. Architecture](#3-architecture)
-		- [3.1 Users](#31-users)
-		- [3.2 Devices](#32-devices)
-		- [3.3 Events](#33-events)
-		- [3.4 Event Graphs](#34-event-graphs)
-		- [3.5 Room structure](#35-room-structure)
-			- [3.5.1 Room Aliases](#351-room-aliases)
-		- [3.6 Identity](#36-identity)
-		- [3.7 Profiles](#37-profiles)
-		- [3.8 Private User Data](#38-private-user-data)
-	- [4. Common concepts](#4-common-concepts)
-		- [4.1 Namespacing](#41-namespacing)
-		- [4.2 Timestamps](#42-timestamps)
-	- [5. Specification Versions](#5-specification-versions)
-		- [5.1 Endpoint versioning](#51-endpoint-versioning)
-		- [5.2 Deprecation policy](#52-deprecation-policy)
-		- [5.3 Legacy versioning](#53-legacy-versioning)
-	- [6. License](#6-license)
+  - [1. Matrix APIs](#1-matrix-apis)
+  - [2. Introduction to the Matrix APIs](#2-introduction-to-the-matrix-apis)
+    - [2.1 Spec Change Proposals](#21-spec-change-proposals)
+  - [3. Architecture](#3-architecture)
+    - [3.1 Users](#31-users)
+    - [3.2 Devices](#32-devices)
+    - [3.3 Events](#33-events)
+    - [3.4 Event Graphs](#34-event-graphs)
+    - [3.5 Room structure](#35-room-structure)
+      - [3.5.1 Room Aliases](#351-room-aliases)
+    - [3.6 Identity](#36-identity)
+    - [3.7 Profiles](#37-profiles)
+    - [3.8 Private User Data](#38-private-user-data)
+  - [4. Common concepts](#4-common-concepts)
+    - [4.1 Namespacing](#41-namespacing)
+    - [4.2 Timestamps](#42-timestamps)
+  - [5. Specification Versions](#5-specification-versions)
+    - [5.1 Endpoint versioning](#51-endpoint-versioning)
+    - [5.2 Deprecation policy](#52-deprecation-policy)
+    - [5.3 Legacy versioning](#53-legacy-versioning)
+  - [6. License](#6-license)
 <!-- markdownlint-enable -->
 
 ## 1. Matrix APIs
@@ -78,7 +78,7 @@ Matrix 試圖遵循的原則包括：
 - 賦予終端用戶權力
   - 用戶應能夠選擇他們使用的伺服器和客戶端
   - 用戶應能夠控制其通訊的隱私程度
-  - 用戶應確切知道他們的數據存儲位置
+  - 用戶應確切知道他們的數據儲存位置
 - 完全去中心化 - 對話或整個網絡沒有單一控制點
 - 從歷史中學習以避免重蹈覆轍
   - 盡量取 XMPP、SIP、IRC、SMTP、IMAP 和 NNTP (總之就是各種通訊協議)的最佳方面，同時避免其缺陷
@@ -112,7 +112,7 @@ Matrix 的最終目標是成為一個普遍的訊息層，
 Matrix 定義了一組 API，
 用於在兼容的客戶端、伺服器和服務之間同步稱為“事件”的可擴展 JSON 對象。
 客戶端通常是訊息/VoIP 應用或 IoT 設備/hubs，通過使用“Client-Server API”與其“主伺服器”同步通訊歷史來進行通訊。
-每個主伺服器存儲其所有客戶端的通訊歷史和帳號訊息，
+每個主伺服器儲存其所有客戶端的通訊歷史和帳號訊息，
 並通過與其他主伺服器及其客戶端同步通訊歷史來與更廣泛的 Matrix 生態系統共享數據。
 
 客戶端通常通過在虛擬“房間”的上下文中發出事件來進行通訊。
@@ -147,6 +147,10 @@ B 的主伺服器驗證請求，驗證事件的簽名，授權事件的內容，
     |                  |<--------( HTTPS )----------|                  |
     +------------------+      Server-Server API     +------------------+
                                歷史同步（聯邦）
+```
+
+```text
+結論: 主要的架構是以用戶和其主伺服器進行交互，並以"房間"作為通訊的一個單位(類似discord的頻道?)，不同主伺服器之間互相複製房間的上下文來同步一個房間的內容，換言之一個房間可能不會被一個主伺服器控制。
 ```
 
 ### 3.1 Users
@@ -208,7 +212,7 @@ Matrix 規範對「設備」一詞有特定的含義。
 
 ### 3.4 Event Graphs
 
-在房間上下文中交換的事件存儲在一個稱為「事件圖」的有向無環圖（DAG）中。
+在房間上下文中交換的事件儲存在一個稱為「事件圖」的有向無環圖（DAG）中。
 這個圖的部分排序給出了房間內事件的時間順序。
 圖中的每個事件都有一個或多個「父」事件的列表，
 這些父事件指的是從創建事件的主伺服器的角度來看沒有時間繼承者的任何前置事件。
@@ -377,7 +381,7 @@ Matrix 用戶可以**連結**電子郵件地址、社交網絡帳號和電話號
 
 ### 3.8 Private User Data
 
-使用者也可以在其帳號中存儲任意私有的 key/value 數據，
+使用者也可以在其帳號中儲存任意私有的 key/value 數據，
 例如客戶端偏好設定或缺乏專用 API 的伺服器配置設定。
 這個 API 與管理個人資料數據的方式是對稱的。
 
