@@ -1,5 +1,125 @@
 # Server-Server API
 
+- [API standards](./1-API-standards.md#1-api-標準)
+  - [TLS](./1-API-standards.md#11-tls)
+  - [Unsupported endpoints](./1-API-standards.md#12-不支援的端點)
+
+<!-- 
+- [Server-Server API](#server-server-api)
+  - [API standards](#api-standards)
+    - [TLS](#tls)
+    - [Unsupported endpoints](#unsupported-endpoints)
+  - [Server discovery](#server-discovery)
+    - [Resolving server names](#resolving-server-names)
+    - [Server implementation](#server-implementation)
+      - [Retrieving server keys](#retrieving-server-keys)
+      - [Publishing Keys](#publishing-keys)
+      - [Querying Keys Through Another Server](#querying-keys-through-another-server)
+- [POST](#post)
+  - [Authentication](#authentication)
+    - [Response Authentication](#response-authentication)
+    - [Client TLS Certificates](#client-tls-certificates)
+  - [Transactions](#transactions)
+- [PUT](#put)
+  - [PDUs](#pdus)
+    - [Checks performed on receipt of a PDU](#checks-performed-on-receipt-of-a-pdu)
+      - [Definitions](#definitions)
+      - [Authorization rules](#authorization-rules)
+        - [Auth events selection](#auth-events-selection)
+      - [Rejection](#rejection)
+      - [Soft failure](#soft-failure)
+      - [Retrieving event authorization information](#retrieving-event-authorization-information)
+  - [EDUs](#edus)
+- [`Ephemeral Data Unit`](#ephemeral-data-unit)
+  - [Examples](#examples)
+  - [Room State Resolution](#room-state-resolution)
+  - [Backfilling and retrieving missing events](#backfilling-and-retrieving-missing-events)
+- [POST](#post-1)
+  - [Retrieving events](#retrieving-events)
+    - [404 response](#404-response)
+    - [404 response](#404-response-1)
+  - [Joining Rooms](#joining-rooms)
+    - [400 response](#400-response)
+    - [403 response](#403-response)
+    - [404 response](#404-response-2)
+- [PUT](#put-1)
+- [PUT](#put-2)
+    - [400 response](#400-response-1)
+    - [403 response](#403-response-1)
+    - [Restricted rooms](#restricted-rooms)
+  - [Knocking upon a room](#knocking-upon-a-room)
+    - [400 response](#400-response-2)
+    - [403 response](#403-response-2)
+    - [404 response](#404-response-3)
+- [PUT](#put-3)
+    - [403 response](#403-response-3)
+    - [404 response](#404-response-4)
+  - [Inviting to a room](#inviting-to-a-room)
+- [PUT](#put-4)
+    - [403 response](#403-response-4)
+- [PUT](#put-5)
+    - [400 response](#400-response-3)
+    - [403 response](#403-response-5)
+  - [Leaving Rooms (Rejecting Invites)](#leaving-rooms-rejecting-invites)
+    - [403 response](#403-response-6)
+- [PUT](#put-6)
+- [PUT](#put-7)
+  - [Third-party invites](#third-party-invites)
+    - [Cases where an association exists for a](#cases-where-an-association-exists-for-a)
+    - [Cases where an association doesn’t](#cases-where-an-association-doesnt)
+- [PUT](#put-8)
+- [PUT](#put-9)
+      - [Verifying the invite](#verifying-the-invite)
+  - [Public Room Directory](#public-room-directory)
+- [POST](#post-2)
+  - [Spaces](#spaces)
+    - [404 response](#404-response-5)
+  - [Typing Notifications](#typing-notifications)
+- [`m.typing`](#mtyping)
+  - [Examples](#examples-1)
+  - [Presence](#presence)
+- [`m.presence`](#mpresence)
+  - [Examples](#examples-2)
+  - [Receipts](#receipts)
+- [`m.receipt`](#mreceipt)
+  - [Examples](#examples-3)
+  - [Querying for information](#querying-for-information)
+    - [404 response](#404-response-6)
+    - [404 response](#404-response-7)
+  - [OpenID](#openid)
+    - [401 response](#401-response)
+  - [Device Management](#device-management)
+- [`m.device_list_update`](#mdevice_list_update)
+  - [Examples](#examples-4)
+  - [End-to-End Encryption](#end-to-end-encryption)
+- [POST](#post-3)
+- [POST](#post-4)
+- [`m.signing_key_update`](#msigning_key_update)
+  - [Examples](#examples-5)
+  - [Send-to-device messaging](#send-to-device-messaging)
+- [`m.direct_to_device`](#mdirect_to_device)
+  - [Examples](#examples-6)
+  - [Content Repository](#content-repository)
+    - [429 response](#429-response)
+    - [502 response](#502-response)
+    - [504 response](#504-response)
+    - [400 response](#400-response-4)
+    - [413 response](#413-response)
+    - [429 response](#429-response-1)
+    - [502 response](#502-response-1)
+    - [504 response](#504-response-1)
+  - [Server Access Control Lists (ACLs)](#server-access-control-lists-acls)
+  - [Signing Events](#signing-events)
+    - [Adding hashes and signatures to outgoing events](#adding-hashes-and-signatures-to-outgoing-events)
+    - [Validating hashes and signatures on received events](#validating-hashes-and-signatures-on-received-events)
+    - [Calculating the reference hash for an event](#calculating-the-reference-hash-for-an-event)
+    - [Calculating the content hash for an event](#calculating-the-content-hash-for-an-event)
+    - [Example code](#example-code)
+  - [Security considerations](#security-considerations) 
+-->
+
+
+
 Matrix 主伺服器使用聯邦 API（也稱為伺服器-伺服器 API）進行通信。
 主伺服器使用這些 API 即時推送消息給其他伺服器、從其他伺服器檢索歷史消息，
 以及查詢其他伺服器上使用者的個人資料和在線狀態資訊。
@@ -23,9 +143,14 @@ Matrix 主伺服器使用聯邦 API（也稱為伺服器-伺服器 API）進行�
    接收伺服器也不需要回應。
 
 3. **查詢 (Queries)**：
-   這些是主伺服器之間單次的請求/回應交互，由一方發送 HTTPS GET 請求以獲取一些信息，另一方回應。這些請求不被持久存儲，亦不包含長期重要的歷史記錄。它們只是請求當前查詢時刻的快照狀態。
+   這些是主伺服器之間單次的請求/回應交互，
+   由一方發送 HTTPS GET 請求以獲取一些信息，另一方回應。
+   這些請求不被持久存儲，
+   亦不包含長期重要的歷史記錄。
+   它們只是請求當前查詢時刻的快照狀態。
 
-EDU 和 PDU 進一步封裝在稱為交易 (Transaction) 的信封中，通過 HTTPS PUT 請求從發起伺服器傳輸到目標主伺服器。
+EDU 和 PDU 進一步封裝在稱為交易 (Transaction) 的信封中，
+通過 HTTPS PUT 請求從發起伺服器傳輸到目標主伺服器。
 
 ## API standards
 
@@ -231,16 +356,16 @@ The IANA registration for port 8448 and `matrix-fed` can be found [here](https:/
 
 
 
-
-
-# GET
-/.well-known/matrix/server
-
-
+<!-- markdownlint-disable -->
+<h1>GET <a>/.well-known/matrix/server</a></h1> 
+<!-- markdownlint-enable -->
 
 
 
----
+
+
+
+<!-- --- -->
 
 
 Gets information about the delegated server for server-server communication
@@ -260,7 +385,9 @@ Gets information about the delegated server for server-server communication
 ---
 
 
-## Request
+<!-- markdownlint-disable -->
+<h2>Request</h2> 
+<!-- markdownlint-enable -->
 
 
 No request parameters or request body.
@@ -271,7 +398,9 @@ No request parameters or request body.
 ---
 
 
-## Responses
+<!-- markdownlint-disable -->
+<h2>Responses</h2> 
+<!-- markdownlint-enable -->
 
 
 
@@ -281,7 +410,9 @@ No request parameters or request body.
 | `200` | The delegated server information. The `Content-Type` for this response SHOULD be  `application/json`, however servers parsing the response should assume that the  body is JSON regardless of type. Failures parsing the JSON or invalid data provided in the  resulting parsed JSON should not result in discovery failure - consult the server discovery  process for information on how to continue. |
 
 
-### 200 response
+<!-- markdownlint-disable -->
+<h3>200 response</h3> 
+<!-- markdownlint-enable -->
 
 
 
@@ -309,7 +440,9 @@ No request parameters or request body.
 
 
 
-# GET
+<!-- markdownlint-disable -->
+<h1>GET</h1> 
+<!-- markdownlint-enable -->
 /\_matrix/federation/v1/version
 
 
@@ -334,7 +467,9 @@ Get the implementation name and version of this homeserver.
 ---
 
 
-## Request
+<!-- markdownlint-disable -->
+<h2>Request</h2> 
+<!-- markdownlint-enable -->
 
 
 No request parameters or request body.
@@ -345,7 +480,9 @@ No request parameters or request body.
 ---
 
 
-## Responses
+<!-- markdownlint-disable -->
+<h2>Responses</h2> 
+<!-- markdownlint-enable -->
 
 
 
@@ -355,7 +492,9 @@ No request parameters or request body.
 | `200` | The implementation name and version of this homeserver. |
 
 
-### 200 response
+<!-- markdownlint-disable -->
+<h3>200 response</h3> 
+<!-- markdownlint-enable -->
 
 
 
@@ -433,7 +572,9 @@ Homeservers publish their signing keys in a JSON object at
 
 
 
-# GET
+<!-- markdownlint-disable -->
+<h1>GET</h1> 
+<!-- markdownlint-enable -->
 /\_matrix/key/v2/server
 
 
@@ -474,7 +615,9 @@ If the server fails to respond to this request, intermediate notary
 ---
 
 
-## Request
+<!-- markdownlint-disable -->
+<h2>Request</h2> 
+<!-- markdownlint-enable -->
 
 
 No request parameters or request body.
@@ -485,7 +628,9 @@ No request parameters or request body.
 ---
 
 
-## Responses
+<!-- markdownlint-disable -->
+<h2>Responses</h2> 
+<!-- markdownlint-enable -->
 
 
 
@@ -495,7 +640,9 @@ No request parameters or request body.
 | `200` | The homeserver’s keys |
 
 
-### 200 response
+<!-- markdownlint-disable -->
+<h3>200 response</h3> 
+<!-- markdownlint-enable -->
 
 
 
@@ -602,10 +749,14 @@ Query for keys from multiple servers in a batch format. The receiving (notary)
 ---
 
 
-## Request
+<!-- markdownlint-disable -->
+<h2>Request</h2> 
+<!-- markdownlint-enable -->
 
 
-### Request body
+#<!-- markdownlint-disable -->
+<h2>Request</h2> 
+<!-- markdownlint-enable --> body
 
 
 
@@ -623,7 +774,9 @@ Query Criteria
 | `minimum_valid_until_ts` | `integer` | A millisecond POSIX timestamp in milliseconds indicating when  the returned certificates will need to be valid until to be  useful to the requesting server. If not supplied, the current time as determined by the notary  server is used. |
 
 
-### Request body example
+#<!-- markdownlint-disable -->
+<h2>Request</h2> 
+<!-- markdownlint-enable --> body example
 
 
 
@@ -647,7 +800,9 @@ Query Criteria
 ---
 
 
-## Responses
+<!-- markdownlint-disable -->
+<h2>Responses</h2> 
+<!-- markdownlint-enable -->
 
 
 
@@ -657,7 +812,9 @@ Query Criteria
 | `200` | The keys for the queried servers, signed by the notary server. Servers which  are offline and have no cached keys will not be included in the result. This  may result in an empty array. |
 
 
-### 200 response
+<!-- markdownlint-disable -->
+<h3>200 response</h3> 
+<!-- markdownlint-enable -->
 
 
 
@@ -735,7 +892,9 @@ Verify Key
 
 
 
-# GET
+<!-- markdownlint-disable -->
+<h1>GET</h1> 
+<!-- markdownlint-enable -->
 /\_matrix/key/v2/query/{serverName}
 
 
@@ -761,10 +920,14 @@ Query for another server’s keys. The receiving (notary) server must
 ---
 
 
-## Request
+<!-- markdownlint-disable -->
+<h2>Request</h2> 
+<!-- markdownlint-enable -->
 
 
-### Request parameters
+#<!-- markdownlint-disable -->
+<h2>Request</h2> 
+<!-- markdownlint-enable --> parameters
 
 
 
@@ -788,7 +951,9 @@ query parameters
 ---
 
 
-## Responses
+<!-- markdownlint-disable -->
+<h2>Responses</h2> 
+<!-- markdownlint-enable -->
 
 
 
@@ -798,7 +963,9 @@ query parameters
 | `200` | The keys for the server, or an empty array if the server could not be reached  and no cached keys were available. |
 
 
-### 200 response
+<!-- markdownlint-disable -->
+<h3>200 response</h3> 
+<!-- markdownlint-enable -->
 
 
 
@@ -876,7 +1043,9 @@ Verify Key
 ## Authentication
 
 
-### Request Authentication
+#<!-- markdownlint-disable -->
+<h2>Request</h2> 
+<!-- markdownlint-enable --> Authentication
 
 
 Every HTTP request made by a homeserver is authenticated using public
@@ -1095,10 +1264,14 @@ Note that events have a different format depending on the room version - check
 ---
 
 
-## Request
+<!-- markdownlint-disable -->
+<h2>Request</h2> 
+<!-- markdownlint-enable -->
 
 
-### Request parameters
+#<!-- markdownlint-disable -->
+<h2>Request</h2> 
+<!-- markdownlint-enable --> parameters
 
 
 
@@ -1109,7 +1282,9 @@ path parameters
 | `txnId` | `string` | **Required:** The transaction ID. |
 
 
-### Request body
+#<!-- markdownlint-disable -->
+<h2>Request</h2> 
+<!-- markdownlint-enable --> body
 
 
 
@@ -1132,7 +1307,9 @@ Ephemeral Data Unit
 | `edu_type` | `string` | **Required:** The type of ephemeral message. |
 
 
-### Request body example
+#<!-- markdownlint-disable -->
+<h2>Request</h2> 
+<!-- markdownlint-enable --> body example
 
 
 
@@ -1160,7 +1337,9 @@ Ephemeral Data Unit
 ---
 
 
-## Responses
+<!-- markdownlint-disable -->
+<h2>Responses</h2> 
+<!-- markdownlint-enable -->
 
 
 
@@ -1170,7 +1349,9 @@ Ephemeral Data Unit
 | `200` | The result of processing the transaction. The server is to use this response even in  the event of one or more PDUs failing to be processed. |
 
 
-### 200 response
+<!-- markdownlint-disable -->
+<h3>200 response</h3> 
+<!-- markdownlint-enable -->
 
 
 
@@ -1547,7 +1728,9 @@ The homeserver may be missing event authorization information, or wish
 
 
 
-# GET
+<!-- markdownlint-disable -->
+<h1>GET</h1> 
+<!-- markdownlint-enable -->
 /\_matrix/federation/v1/event\_auth/{roomId}/{eventId}
 
 
@@ -1572,10 +1755,14 @@ Retrieves the complete auth chain for a given event.
 ---
 
 
-## Request
+<!-- markdownlint-disable -->
+<h2>Request</h2> 
+<!-- markdownlint-enable -->
 
 
-### Request parameters
+#<!-- markdownlint-disable -->
+<h2>Request</h2> 
+<!-- markdownlint-enable --> parameters
 
 
 
@@ -1592,7 +1779,9 @@ path parameters
 ---
 
 
-## Responses
+<!-- markdownlint-disable -->
+<h2>Responses</h2> 
+<!-- markdownlint-enable -->
 
 
 
@@ -1602,7 +1791,9 @@ path parameters
 | `200` | The auth chain for the event. |
 
 
-### 200 response
+<!-- markdownlint-disable -->
+<h3>200 response</h3> 
+<!-- markdownlint-enable -->
 
 
 
@@ -1756,7 +1947,9 @@ Similar to backfilling a room’s history, a server may not have all the
 
 
 
-# GET
+<!-- markdownlint-disable -->
+<h1>GET</h1> 
+<!-- markdownlint-enable -->
 /\_matrix/federation/v1/backfill/{roomId}
 
 
@@ -1783,10 +1976,14 @@ Retrieves a sliding-window history of previous PDUs that occurred in the given r
 ---
 
 
-## Request
+<!-- markdownlint-disable -->
+<h2>Request</h2> 
+<!-- markdownlint-enable -->
 
 
-### Request parameters
+#<!-- markdownlint-disable -->
+<h2>Request</h2> 
+<!-- markdownlint-enable --> parameters
 
 
 
@@ -1811,7 +2008,9 @@ query parameters
 ---
 
 
-## Responses
+<!-- markdownlint-disable -->
+<h2>Responses</h2> 
+<!-- markdownlint-enable -->
 
 
 
@@ -1821,7 +2020,9 @@ query parameters
 | `200` | A transaction containing the PDUs that preceded the given event(s), including the given  event(s), up to the given limit. **Note:**  Though the PDU definitions require that `prev_events` and  `auth_events` be limited  in number, the response of backfill MUST NOT be validated on these specific  restrictions. Due to historical reasons, it is possible that events which were previously accepted  would now be rejected by these limitations. The events should be rejected per usual by  the `/send`, `/get_missing_events`, and remaining endpoints. |
 
 
-### 200 response
+<!-- markdownlint-disable -->
+<h3>200 response</h3> 
+<!-- markdownlint-enable -->
 
 
 
@@ -1887,10 +2088,14 @@ Retrieves previous events that the sender is missing. This is done by doing a br
 ---
 
 
-## Request
+<!-- markdownlint-disable -->
+<h2>Request</h2> 
+<!-- markdownlint-enable -->
 
 
-### Request parameters
+#<!-- markdownlint-disable -->
+<h2>Request</h2> 
+<!-- markdownlint-enable --> parameters
 
 
 
@@ -1901,7 +2106,9 @@ path parameters
 | `roomId` | `string` | **Required:** The room ID to search in. |
 
 
-### Request body
+#<!-- markdownlint-disable -->
+<h2>Request</h2> 
+<!-- markdownlint-enable --> body
 
 
 
@@ -1914,7 +2121,9 @@ path parameters
 | `min_depth` | `integer` | The minimum depth of events to retrieve. Defaults to 0. |
 
 
-### Request body example
+#<!-- markdownlint-disable -->
+<h2>Request</h2> 
+<!-- markdownlint-enable --> body example
 
 
 
@@ -1938,7 +2147,9 @@ path parameters
 ---
 
 
-## Responses
+<!-- markdownlint-disable -->
+<h2>Responses</h2> 
+<!-- markdownlint-enable -->
 
 
 
@@ -1948,7 +2159,9 @@ path parameters
 | `200` | The previous events for `latest_events`, excluding any  `earliest_events`, up to the  provided `limit`. |
 
 
-### 200 response
+<!-- markdownlint-disable -->
+<h3>200 response</h3> 
+<!-- markdownlint-enable -->
 
 
 
@@ -1990,7 +2203,9 @@ In some circumstances, a homeserver may be missing a particular event or
 
 
 
-# GET
+<!-- markdownlint-disable -->
+<h1>GET</h1> 
+<!-- markdownlint-enable -->
 /\_matrix/federation/v1/event/{eventId}
 
 
@@ -2015,10 +2230,14 @@ Retrieves a single event.
 ---
 
 
-## Request
+<!-- markdownlint-disable -->
+<h2>Request</h2> 
+<!-- markdownlint-enable -->
 
 
-### Request parameters
+#<!-- markdownlint-disable -->
+<h2>Request</h2> 
+<!-- markdownlint-enable --> parameters
 
 
 
@@ -2034,7 +2253,9 @@ path parameters
 ---
 
 
-## Responses
+<!-- markdownlint-disable -->
+<h2>Responses</h2> 
+<!-- markdownlint-enable -->
 
 
 
@@ -2044,7 +2265,9 @@ path parameters
 | `200` | A transaction containing a single PDU which is the event requested. |
 
 
-### 200 response
+<!-- markdownlint-disable -->
+<h3>200 response</h3> 
+<!-- markdownlint-enable -->
 
 
 
@@ -2082,7 +2305,9 @@ Transaction
 
 
 
-# GET
+<!-- markdownlint-disable -->
+<h1>GET</h1> 
+<!-- markdownlint-enable -->
 /\_matrix/federation/v1/state/{roomId}
 
 
@@ -2107,10 +2332,14 @@ Retrieves a snapshot of a room’s state at a given event.
 ---
 
 
-## Request
+<!-- markdownlint-disable -->
+<h2>Request</h2> 
+<!-- markdownlint-enable -->
 
 
-### Request parameters
+#<!-- markdownlint-disable -->
+<h2>Request</h2> 
+<!-- markdownlint-enable --> parameters
 
 
 
@@ -2134,7 +2363,9 @@ query parameters
 ---
 
 
-## Responses
+<!-- markdownlint-disable -->
+<h2>Responses</h2> 
+<!-- markdownlint-enable -->
 
 
 
@@ -2144,7 +2375,9 @@ query parameters
 | `200` | The fully resolved state for the room, prior to considering any state  changes induced by the requested event. Includes the authorization  chain for the events. |
 
 
-### 200 response
+<!-- markdownlint-disable -->
+<h3>200 response</h3> 
+<!-- markdownlint-enable -->
 
 
 
@@ -2187,7 +2420,9 @@ query parameters
 
 
 
-# GET
+<!-- markdownlint-disable -->
+<h1>GET</h1> 
+<!-- markdownlint-enable -->
 /\_matrix/federation/v1/state\_ids/{roomId}
 
 
@@ -2214,10 +2449,14 @@ Retrieves a snapshot of a room’s state at a given event, in the form of
 ---
 
 
-## Request
+<!-- markdownlint-disable -->
+<h2>Request</h2> 
+<!-- markdownlint-enable -->
 
 
-### Request parameters
+#<!-- markdownlint-disable -->
+<h2>Request</h2> 
+<!-- markdownlint-enable --> parameters
 
 
 
@@ -2241,7 +2480,9 @@ query parameters
 ---
 
 
-## Responses
+<!-- markdownlint-disable -->
+<h2>Responses</h2> 
+<!-- markdownlint-enable -->
 
 
 
@@ -2252,7 +2493,9 @@ query parameters
 | `404` | The given `event_id` was not found or the server doesn’t know about the state at  that event to return anything useful. |
 
 
-### 200 response
+<!-- markdownlint-disable -->
+<h3>200 response</h3> 
+<!-- markdownlint-enable -->
 
 
 
@@ -2306,7 +2549,9 @@ Error
 
 
 
-# GET
+<!-- markdownlint-disable -->
+<h1>GET</h1> 
+<!-- markdownlint-enable -->
 /\_matrix/federation/v1/timestamp\_to\_event/{roomId}
 
 
@@ -2364,10 +2609,14 @@ After the local homeserver receives the response, it should determine,
 ---
 
 
-## Request
+<!-- markdownlint-disable -->
+<h2>Request</h2> 
+<!-- markdownlint-enable -->
 
 
-### Request parameters
+#<!-- markdownlint-disable -->
+<h2>Request</h2> 
+<!-- markdownlint-enable --> parameters
 
 
 
@@ -2392,7 +2641,9 @@ query parameters
 ---
 
 
-## Responses
+<!-- markdownlint-disable -->
+<h2>Responses</h2> 
+<!-- markdownlint-enable -->
 
 
 
@@ -2403,7 +2654,9 @@ query parameters
 | `404` | No event was found. |
 
 
-### 200 response
+<!-- markdownlint-disable -->
+<h3>200 response</h3> 
+<!-- markdownlint-enable -->
 
 
 
@@ -2566,7 +2819,9 @@ The resident homeserver then adds its signature to this event and
 
 
 
-# GET
+<!-- markdownlint-disable -->
+<h1>GET</h1> 
+<!-- markdownlint-enable -->
 /\_matrix/federation/v1/make\_join/{roomId}/{userId}
 
 
@@ -2592,10 +2847,14 @@ Asks the receiving server to return information that the sending
 ---
 
 
-## Request
+<!-- markdownlint-disable -->
+<h2>Request</h2> 
+<!-- markdownlint-enable -->
 
 
-### Request parameters
+#<!-- markdownlint-disable -->
+<h2>Request</h2> 
+<!-- markdownlint-enable --> parameters
 
 
 
@@ -2620,7 +2879,9 @@ query parameters
 ---
 
 
-## Responses
+<!-- markdownlint-disable -->
+<h2>Responses</h2> 
+<!-- markdownlint-enable -->
 
 
 
@@ -2633,7 +2894,9 @@ query parameters
 | `404` | The room that the joining server is attempting to join is unknown  to the receiving server. |
 
 
-### 200 response
+<!-- markdownlint-disable -->
+<h3>200 response</h3> 
+<!-- markdownlint-enable -->
 
 
 
@@ -2803,10 +3066,14 @@ Submits a signed join event to the resident server for it
 ---
 
 
-## Request
+<!-- markdownlint-disable -->
+<h2>Request</h2> 
+<!-- markdownlint-enable -->
 
 
-### Request parameters
+#<!-- markdownlint-disable -->
+<h2>Request</h2> 
+<!-- markdownlint-enable --> parameters
 
 
 
@@ -2818,7 +3085,9 @@ path parameters
 | `roomId` | `string` | **Required:** The room ID that is about to be joined. |
 
 
-### Request body
+#<!-- markdownlint-disable -->
+<h2>Request</h2> 
+<!-- markdownlint-enable --> body
 
 
 
@@ -2842,7 +3111,9 @@ Membership Event Content
 | `membership` | `string` | **Required:** The value `join`. |
 
 
-### Request body example
+#<!-- markdownlint-disable -->
+<h2>Request</h2> 
+<!-- markdownlint-enable --> body example
 
 
 
@@ -2867,7 +3138,9 @@ Membership Event Content
 ---
 
 
-## Responses
+<!-- markdownlint-disable -->
+<h2>Responses</h2> 
+<!-- markdownlint-enable -->
 
 
 
@@ -2877,7 +3150,9 @@ Membership Event Content
 | `200` | The join event has been accepted into the room. |
 
 
-### 200 response
+<!-- markdownlint-disable -->
+<h3>200 response</h3> 
+<!-- markdownlint-enable -->
 
 
 Array of `integer, Room State`.
@@ -3007,10 +3282,14 @@ Submits a signed join event to the resident server for it
 ---
 
 
-## Request
+<!-- markdownlint-disable -->
+<h2>Request</h2> 
+<!-- markdownlint-enable -->
 
 
-### Request parameters
+#<!-- markdownlint-disable -->
+<h2>Request</h2> 
+<!-- markdownlint-enable --> parameters
 
 
 
@@ -3030,7 +3309,9 @@ query parameters
 | `omit_members` | `boolean` | If `true`, indicates that that calling server can accept a reduced  response, in which membership events are omitted from `state` and  redundant events are omitted from `auth_chain`. If the room to be joined has no `m.room.name` nor  `m.room.canonical_alias` events in its current state, the resident  server should determine the room members who would be included in  the `m.heroes` property of the room summary as defined in the  [Client-Server /sync  response](/v1.11/client-server-api/#get_matrixclientv3sync). The resident  server should include these members’ membership events in the  response `state` field, and include the auth chains for these  membership events in the response `auth_chain` field.   **Added in `v1.6`** |
 
 
-### Request body
+#<!-- markdownlint-disable -->
+<h2>Request</h2> 
+<!-- markdownlint-enable --> body
 
 
 
@@ -3054,7 +3335,9 @@ Membership Event Content
 | `membership` | `string` | **Required:** The value `join`. |
 
 
-### Request body example
+#<!-- markdownlint-disable -->
+<h2>Request</h2> 
+<!-- markdownlint-enable --> body example
 
 
 
@@ -3079,7 +3362,9 @@ Membership Event Content
 ---
 
 
-## Responses
+<!-- markdownlint-disable -->
+<h2>Responses</h2> 
+<!-- markdownlint-enable -->
 
 
 
@@ -3091,7 +3376,9 @@ Membership Event Content
 | `403` | The room that the joining server is attempting to join does not permit the user  to join. |
 
 
-### 200 response
+<!-- markdownlint-disable -->
+<h3>200 response</h3> 
+<!-- markdownlint-enable -->
 
 
 
@@ -3280,7 +3567,9 @@ Servers can retract knocks over federation by leaving the room, as described
 
 
 
-# GET
+<!-- markdownlint-disable -->
+<h1>GET</h1> 
+<!-- markdownlint-enable -->
 /\_matrix/federation/v1/make\_knock/{roomId}/{userId}
 
 
@@ -3309,10 +3598,14 @@ Asks the receiving server to return information that the sending
 ---
 
 
-## Request
+<!-- markdownlint-disable -->
+<h2>Request</h2> 
+<!-- markdownlint-enable -->
 
 
-### Request parameters
+#<!-- markdownlint-disable -->
+<h2>Request</h2> 
+<!-- markdownlint-enable --> parameters
 
 
 
@@ -3337,7 +3630,9 @@ query parameters
 ---
 
 
-## Responses
+<!-- markdownlint-disable -->
+<h2>Responses</h2> 
+<!-- markdownlint-enable -->
 
 
 
@@ -3350,7 +3645,9 @@ query parameters
 | `404` | The room that the knocking server is attempting to knock upon is unknown  to the receiving server. |
 
 
-### 200 response
+<!-- markdownlint-disable -->
+<h3>200 response</h3> 
+<!-- markdownlint-enable -->
 
 
 
@@ -3514,10 +3811,14 @@ Submits a signed knock event to the resident server for it to
 ---
 
 
-## Request
+<!-- markdownlint-disable -->
+<h2>Request</h2> 
+<!-- markdownlint-enable -->
 
 
-### Request parameters
+#<!-- markdownlint-disable -->
+<h2>Request</h2> 
+<!-- markdownlint-enable --> parameters
 
 
 
@@ -3529,7 +3830,9 @@ path parameters
 | `roomId` | `string` | **Required:** The room ID that is about to be knocked upon. |
 
 
-### Request body
+#<!-- markdownlint-disable -->
+<h2>Request</h2> 
+<!-- markdownlint-enable --> body
 
 
 
@@ -3552,7 +3855,9 @@ Membership Event Content
 | `membership` | `string` | **Required:** The value `knock`. |
 
 
-### Request body example
+#<!-- markdownlint-disable -->
+<h2>Request</h2> 
+<!-- markdownlint-enable --> body example
 
 
 
@@ -3577,7 +3882,9 @@ Membership Event Content
 ---
 
 
-## Responses
+<!-- markdownlint-disable -->
+<h2>Responses</h2> 
+<!-- markdownlint-enable -->
 
 
 
@@ -3589,7 +3896,9 @@ Membership Event Content
 | `404` | The room that the knocking server is attempting to knock upon is unknown  to the receiving server. |
 
 
-### 200 response
+<!-- markdownlint-disable -->
+<h3>200 response</h3> 
+<!-- markdownlint-enable -->
 
 
 
@@ -3743,10 +4052,14 @@ Note that events have a different format depending on the room version - check t
 ---
 
 
-## Request
+<!-- markdownlint-disable -->
+<h2>Request</h2> 
+<!-- markdownlint-enable -->
 
 
-### Request parameters
+#<!-- markdownlint-disable -->
+<h2>Request</h2> 
+<!-- markdownlint-enable --> parameters
 
 
 
@@ -3758,7 +4071,9 @@ path parameters
 | `roomId` | `string` | **Required:** The room ID that the user is being invited to. |
 
 
-### Request body
+#<!-- markdownlint-disable -->
+<h2>Request</h2> 
+<!-- markdownlint-enable --> body
 
 
 
@@ -3802,7 +4117,9 @@ StrippedStateEvent
 | `type` | `string` | **Required:** The `type` for the event. |
 
 
-### Request body example
+#<!-- markdownlint-disable -->
+<h2>Request</h2> 
+<!-- markdownlint-enable --> body example
 
 
 
@@ -3847,7 +4164,9 @@ StrippedStateEvent
 ---
 
 
-## Responses
+<!-- markdownlint-disable -->
+<h2>Responses</h2> 
+<!-- markdownlint-enable -->
 
 
 
@@ -3858,7 +4177,9 @@ StrippedStateEvent
 | `403` | The invite is not allowed. This could be for a number of reasons, including:* The sender is not allowed to send invites to the target user/homeserver. * The homeserver does not permit anyone to invite its users. * The homeserver refuses to participate in the room. |
 
 
-### 200 response
+<!-- markdownlint-disable -->
+<h3>200 response</h3> 
+<!-- markdownlint-enable -->
 
 
 Array of `integer, Event Container`.
@@ -4017,10 +4338,14 @@ Note that events have a different format depending on the room version - check t
 ---
 
 
-## Request
+<!-- markdownlint-disable -->
+<h2>Request</h2> 
+<!-- markdownlint-enable -->
 
 
-### Request parameters
+#<!-- markdownlint-disable -->
+<h2>Request</h2> 
+<!-- markdownlint-enable --> parameters
 
 
 
@@ -4032,7 +4357,9 @@ path parameters
 | `roomId` | `string` | **Required:** The room ID that the user is being invited to. |
 
 
-### Request body
+#<!-- markdownlint-disable -->
+<h2>Request</h2> 
+<!-- markdownlint-enable --> body
 
 
 
@@ -4076,7 +4403,9 @@ StrippedStateEvent
 | `type` | `string` | **Required:** The `type` for the event. |
 
 
-### Request body example
+#<!-- markdownlint-disable -->
+<h2>Request</h2> 
+<!-- markdownlint-enable --> body example
 
 
 
@@ -4122,7 +4451,9 @@ StrippedStateEvent
 ---
 
 
-## Responses
+<!-- markdownlint-disable -->
+<h2>Responses</h2> 
+<!-- markdownlint-enable -->
 
 
 
@@ -4134,7 +4465,9 @@ StrippedStateEvent
 | `403` | The invite is not allowed. This could be for a number of reasons, including:* The sender is not allowed to send invites to the target user/homeserver. * The homeserver does not permit anyone to invite its users. * The homeserver refuses to participate in the room. |
 
 
-### 200 response
+<!-- markdownlint-disable -->
+<h3>200 response</h3> 
+<!-- markdownlint-enable -->
 
 
 
@@ -4289,7 +4622,9 @@ Similar to the [Joining Rooms](#joining-rooms) handshake, the server
 
 
 
-# GET
+<!-- markdownlint-disable -->
+<h1>GET</h1> 
+<!-- markdownlint-enable -->
 /\_matrix/federation/v1/make\_leave/{roomId}/{userId}
 
 
@@ -4315,10 +4650,14 @@ Asks the receiving server to return information that the sending
 ---
 
 
-## Request
+<!-- markdownlint-disable -->
+<h2>Request</h2> 
+<!-- markdownlint-enable -->
 
 
-### Request parameters
+#<!-- markdownlint-disable -->
+<h2>Request</h2> 
+<!-- markdownlint-enable --> parameters
 
 
 
@@ -4335,7 +4674,9 @@ path parameters
 ---
 
 
-## Responses
+<!-- markdownlint-disable -->
+<h2>Responses</h2> 
+<!-- markdownlint-enable -->
 
 
 
@@ -4346,7 +4687,9 @@ path parameters
 | `403` | The request is not authorized. This could mean that the user is not in the room. |
 
 
-### 200 response
+<!-- markdownlint-disable -->
+<h3>200 response</h3> 
+<!-- markdownlint-enable -->
 
 
 
@@ -4466,10 +4809,14 @@ Submits a signed leave event to the resident server for it
 ---
 
 
-## Request
+<!-- markdownlint-disable -->
+<h2>Request</h2> 
+<!-- markdownlint-enable -->
 
 
-### Request parameters
+#<!-- markdownlint-disable -->
+<h2>Request</h2> 
+<!-- markdownlint-enable --> parameters
 
 
 
@@ -4481,7 +4828,9 @@ path parameters
 | `roomId` | `string` | **Required:** The room ID that is about to be left. |
 
 
-### Request body
+#<!-- markdownlint-disable -->
+<h2>Request</h2> 
+<!-- markdownlint-enable --> body
 
 
 
@@ -4505,7 +4854,9 @@ Membership Event Content
 | `membership` | `string` | **Required:** The value `leave`. |
 
 
-### Request body example
+#<!-- markdownlint-disable -->
+<h2>Request</h2> 
+<!-- markdownlint-enable --> body example
 
 
 
@@ -4531,7 +4882,9 @@ Membership Event Content
 ---
 
 
-## Responses
+<!-- markdownlint-disable -->
+<h2>Responses</h2> 
+<!-- markdownlint-enable -->
 
 
 
@@ -4541,7 +4894,9 @@ Membership Event Content
 | `200` | An empty response to indicate the event was accepted into the graph by  the receiving homeserver. |
 
 
-### 200 response
+<!-- markdownlint-disable -->
+<h3>200 response</h3> 
+<!-- markdownlint-enable -->
 
 
 Array of `integer, Empty Object`.
@@ -4606,10 +4961,14 @@ Submits a signed leave event to the resident server for it
 ---
 
 
-## Request
+<!-- markdownlint-disable -->
+<h2>Request</h2> 
+<!-- markdownlint-enable -->
 
 
-### Request parameters
+#<!-- markdownlint-disable -->
+<h2>Request</h2> 
+<!-- markdownlint-enable --> parameters
 
 
 
@@ -4621,7 +4980,9 @@ path parameters
 | `roomId` | `string` | **Required:** The room ID that is about to be left. |
 
 
-### Request body
+#<!-- markdownlint-disable -->
+<h2>Request</h2> 
+<!-- markdownlint-enable --> body
 
 
 
@@ -4645,7 +5006,9 @@ Membership Event Content
 | `membership` | `string` | **Required:** The value `leave`. |
 
 
-### Request body example
+#<!-- markdownlint-disable -->
+<h2>Request</h2> 
+<!-- markdownlint-enable --> body example
 
 
 
@@ -4671,7 +5034,9 @@ Membership Event Content
 ---
 
 
-## Responses
+<!-- markdownlint-disable -->
+<h2>Responses</h2> 
+<!-- markdownlint-enable -->
 
 
 
@@ -4681,7 +5046,9 @@ Membership Event Content
 | `200` | An empty response to indicate the event was accepted into the graph by  the receiving homeserver. |
 
 
-### 200 response
+<!-- markdownlint-disable -->
+<h3>200 response</h3> 
+<!-- markdownlint-enable -->
 
 
 
@@ -4788,10 +5155,14 @@ Used by identity servers to notify the homeserver that one of its users
 ---
 
 
-## Request
+<!-- markdownlint-disable -->
+<h2>Request</h2> 
+<!-- markdownlint-enable -->
 
 
-### Request body
+#<!-- markdownlint-disable -->
+<h2>Request</h2> 
+<!-- markdownlint-enable --> body
 
 
 
@@ -4835,7 +5206,9 @@ Identity Server Domain Signature
 | `ed25519:0` | `string` | **Required:** The signature. |
 
 
-### Request body example
+#<!-- markdownlint-disable -->
+<h2>Request</h2> 
+<!-- markdownlint-enable --> body example
 
 
 
@@ -4873,7 +5246,9 @@ Identity Server Domain Signature
 ---
 
 
-## Responses
+<!-- markdownlint-disable -->
+<h2>Responses</h2> 
+<!-- markdownlint-enable -->
 
 
 
@@ -4883,7 +5258,9 @@ Identity Server Domain Signature
 | `200` | The homeserver has processed the notification. |
 
 
-### 200 response
+<!-- markdownlint-disable -->
+<h3>200 response</h3> 
+<!-- markdownlint-enable -->
 
 
 
@@ -4928,10 +5305,14 @@ The receiving server will verify the partial `m.room.member` event
 ---
 
 
-## Request
+<!-- markdownlint-disable -->
+<h2>Request</h2> 
+<!-- markdownlint-enable -->
 
 
-### Request parameters
+#<!-- markdownlint-disable -->
+<h2>Request</h2> 
+<!-- markdownlint-enable --> parameters
 
 
 
@@ -4942,7 +5323,9 @@ path parameters
 | `roomId` | `string` | **Required:** The room ID to exchange a third-party invite in |
 
 
-### Request body
+#<!-- markdownlint-disable -->
+<h2>Request</h2> 
+<!-- markdownlint-enable --> body
 
 
 
@@ -4984,7 +5367,9 @@ Invite Signatures
 | `token` | `string` | **Required:** The token used to verify the event |
 
 
-### Request body example
+#<!-- markdownlint-disable -->
+<h2>Request</h2> 
+<!-- markdownlint-enable --> body example
 
 
 
@@ -5020,7 +5405,9 @@ Invite Signatures
 ---
 
 
-## Responses
+<!-- markdownlint-disable -->
+<h2>Responses</h2> 
+<!-- markdownlint-enable -->
 
 
 
@@ -5030,7 +5417,9 @@ Invite Signatures
 | `200` | The invite has been issued successfully. |
 
 
-### 200 response
+<!-- markdownlint-disable -->
+<h3>200 response</h3> 
+<!-- markdownlint-enable -->
 
 
 
@@ -5088,7 +5477,9 @@ To complement the [Client-Server
 
 
 
-# GET
+<!-- markdownlint-disable -->
+<h1>GET</h1> 
+<!-- markdownlint-enable -->
 /\_matrix/federation/v1/publicRooms
 
 
@@ -5115,10 +5506,14 @@ Gets all the public rooms for the homeserver. This should not return
 ---
 
 
-## Request
+<!-- markdownlint-disable -->
+<h2>Request</h2> 
+<!-- markdownlint-enable -->
 
 
-### Request parameters
+#<!-- markdownlint-disable -->
+<h2>Request</h2> 
+<!-- markdownlint-enable --> parameters
 
 
 
@@ -5137,7 +5532,9 @@ query parameters
 ---
 
 
-## Responses
+<!-- markdownlint-disable -->
+<h2>Responses</h2> 
+<!-- markdownlint-enable -->
 
 
 
@@ -5147,7 +5544,9 @@ query parameters
 | `200` | The public room list for the homeserver. |
 
 
-### 200 response
+<!-- markdownlint-disable -->
+<h3>200 response</h3> 
+<!-- markdownlint-enable -->
 
 
 
@@ -5240,10 +5639,14 @@ Note that this endpoint receives and returns the same format that is seen
 ---
 
 
-## Request
+<!-- markdownlint-disable -->
+<h2>Request</h2> 
+<!-- markdownlint-enable -->
 
 
-### Request body
+#<!-- markdownlint-disable -->
+<h2>Request</h2> 
+<!-- markdownlint-enable --> body
 
 
 
@@ -5266,7 +5669,9 @@ Filter
 | `room_types` | `[string|null]` | An optional list of [room types](/v1.11/client-server-api/#types) to search  for. To include rooms without a room type, specify `null` within this  list. When not specified, all applicable rooms (regardless of type)  are returned.  **Added in `v1.4`** |
 
 
-### Request body example
+#<!-- markdownlint-disable -->
+<h2>Request</h2> 
+<!-- markdownlint-enable --> body example
 
 
 
@@ -5293,7 +5698,9 @@ Filter
 ---
 
 
-## Responses
+<!-- markdownlint-disable -->
+<h2>Responses</h2> 
+<!-- markdownlint-enable -->
 
 
 
@@ -5303,7 +5710,9 @@ Filter
 | `200` | A list of the rooms on the server. |
 
 
-### 200 response
+<!-- markdownlint-disable -->
+<h3>200 response</h3> 
+<!-- markdownlint-enable -->
 
 
 
@@ -5370,7 +5779,9 @@ To complement the [Client-Server API’s Spaces module](/v1.11/client-server-api
 
 
 
-# GET
+<!-- markdownlint-disable -->
+<h1>GET</h1> 
+<!-- markdownlint-enable -->
 /\_matrix/federation/v1/hierarchy/{roomId}
 
 
@@ -5409,10 +5820,14 @@ Responses to this endpoint should be cached for a period of time.
 ---
 
 
-## Request
+<!-- markdownlint-disable -->
+<h2>Request</h2> 
+<!-- markdownlint-enable -->
 
 
-### Request parameters
+#<!-- markdownlint-disable -->
+<h2>Request</h2> 
+<!-- markdownlint-enable --> parameters
 
 
 
@@ -5436,7 +5851,9 @@ query parameters
 ---
 
 
-## Responses
+<!-- markdownlint-disable -->
+<h2>Responses</h2> 
+<!-- markdownlint-enable -->
 
 
 
@@ -5447,7 +5864,9 @@ query parameters
 | `404` | The room is not known to the server or the requesting server is unable to peek/join  it (if it were to attempt this). |
 
 
-### 200 response
+<!-- markdownlint-disable -->
+<h3>200 response</h3> 
+<!-- markdownlint-enable -->
 
 
 
@@ -5857,7 +6276,9 @@ There are several types of queries that can be made. The generic
 
 
 
-# GET
+<!-- markdownlint-disable -->
+<h1>GET</h1> 
+<!-- markdownlint-enable -->
 /\_matrix/federation/v1/query/directory
 
 
@@ -5888,10 +6309,14 @@ Servers may wish to cache the response to this query to avoid requesting the
 ---
 
 
-## Request
+<!-- markdownlint-disable -->
+<h2>Request</h2> 
+<!-- markdownlint-enable -->
 
 
-### Request parameters
+#<!-- markdownlint-disable -->
+<h2>Request</h2> 
+<!-- markdownlint-enable --> parameters
 
 
 
@@ -5907,7 +6332,9 @@ query parameters
 ---
 
 
-## Responses
+<!-- markdownlint-disable -->
+<h2>Responses</h2> 
+<!-- markdownlint-enable -->
 
 
 
@@ -5918,7 +6345,9 @@ query parameters
 | `404` | The room alias was not found. |
 
 
-### 200 response
+<!-- markdownlint-disable -->
+<h3>200 response</h3> 
+<!-- markdownlint-enable -->
 
 
 
@@ -5972,7 +6401,9 @@ Error
 
 
 
-# GET
+<!-- markdownlint-disable -->
+<h1>GET</h1> 
+<!-- markdownlint-enable -->
 /\_matrix/federation/v1/query/profile
 
 
@@ -6003,10 +6434,14 @@ Servers may wish to cache the response to this query to avoid requesting the
 ---
 
 
-## Request
+<!-- markdownlint-disable -->
+<h2>Request</h2> 
+<!-- markdownlint-enable -->
 
 
-### Request parameters
+#<!-- markdownlint-disable -->
+<h2>Request</h2> 
+<!-- markdownlint-enable --> parameters
 
 
 
@@ -6023,7 +6458,9 @@ query parameters
 ---
 
 
-## Responses
+<!-- markdownlint-disable -->
+<h2>Responses</h2> 
+<!-- markdownlint-enable -->
 
 
 
@@ -6034,7 +6471,9 @@ query parameters
 | `404` | The user does not exist or does not have a profile. |
 
 
-### 200 response
+<!-- markdownlint-disable -->
+<h3>200 response</h3> 
+<!-- markdownlint-enable -->
 
 
 
@@ -6084,7 +6523,9 @@ Error
 
 
 
-# GET
+<!-- markdownlint-disable -->
+<h1>GET</h1> 
+<!-- markdownlint-enable -->
 /\_matrix/federation/v1/query/{queryType}
 
 
@@ -6111,10 +6552,14 @@ Performs a single query request on the receiving homeserver. The query string
 ---
 
 
-## Request
+<!-- markdownlint-disable -->
+<h2>Request</h2> 
+<!-- markdownlint-enable -->
 
 
-### Request parameters
+#<!-- markdownlint-disable -->
+<h2>Request</h2> 
+<!-- markdownlint-enable --> parameters
 
 
 
@@ -6130,7 +6575,9 @@ path parameters
 ---
 
 
-## Responses
+<!-- markdownlint-disable -->
+<h2>Responses</h2> 
+<!-- markdownlint-enable -->
 
 
 
@@ -6158,7 +6605,9 @@ Access tokens generated by the OpenID API are only good for the OpenID
 
 
 
-# GET
+<!-- markdownlint-disable -->
+<h1>GET</h1> 
+<!-- markdownlint-enable -->
 /\_matrix/federation/v1/openid/userinfo
 
 
@@ -6185,10 +6634,14 @@ Exchanges an OpenID access token for information about the user
 ---
 
 
-## Request
+<!-- markdownlint-disable -->
+<h2>Request</h2> 
+<!-- markdownlint-enable -->
 
 
-### Request parameters
+#<!-- markdownlint-disable -->
+<h2>Request</h2> 
+<!-- markdownlint-enable --> parameters
 
 
 
@@ -6204,7 +6657,9 @@ query parameters
 ---
 
 
-## Responses
+<!-- markdownlint-disable -->
+<h2>Responses</h2> 
+<!-- markdownlint-enable -->
 
 
 
@@ -6215,7 +6670,9 @@ query parameters
 | `401` | The token was not recognized or has expired. |
 
 
-### 200 response
+<!-- markdownlint-disable -->
+<h3>200 response</h3> 
+<!-- markdownlint-enable -->
 
 
 
@@ -6315,7 +6772,9 @@ This forms a simple directed acyclic graph of `m.device_list_update`
 
 
 
-# GET
+<!-- markdownlint-disable -->
+<h1>GET</h1> 
+<!-- markdownlint-enable -->
 /\_matrix/federation/v1/user/devices/{userId}
 
 
@@ -6340,10 +6799,14 @@ Gets information on all of the user’s devices
 ---
 
 
-## Request
+<!-- markdownlint-disable -->
+<h2>Request</h2> 
+<!-- markdownlint-enable -->
 
 
-### Request parameters
+#<!-- markdownlint-disable -->
+<h2>Request</h2> 
+<!-- markdownlint-enable --> parameters
 
 
 
@@ -6359,7 +6822,9 @@ path parameters
 ---
 
 
-## Responses
+<!-- markdownlint-disable -->
+<h2>Responses</h2> 
+<!-- markdownlint-enable -->
 
 
 
@@ -6369,7 +6834,9 @@ path parameters
 | `200` | The user’s devices. |
 
 
-### 200 response
+<!-- markdownlint-disable -->
+<h3>200 response</h3> 
+<!-- markdownlint-enable -->
 
 
 
@@ -6614,10 +7081,14 @@ Claims one-time keys for use in pre-key messages.
 ---
 
 
-## Request
+<!-- markdownlint-disable -->
+<h2>Request</h2> 
+<!-- markdownlint-enable -->
 
 
-### Request body
+#<!-- markdownlint-disable -->
+<h2>Request</h2> 
+<!-- markdownlint-enable --> body
 
 
 
@@ -6627,7 +7098,9 @@ Claims one-time keys for use in pre-key messages.
 | `one_time_keys` | `{[User ID](/v1.11/appendices#user-identifiers): {string: string}}` | **Required:** The keys to be claimed. A map from user ID, to a map from  device ID to algorithm name. Requested users must be local  to the receiving homeserver. |
 
 
-### Request body example
+#<!-- markdownlint-disable -->
+<h2>Request</h2> 
+<!-- markdownlint-enable --> body example
 
 
 
@@ -6649,7 +7122,9 @@ Claims one-time keys for use in pre-key messages.
 ---
 
 
-## Responses
+<!-- markdownlint-disable -->
+<h2>Responses</h2> 
+<!-- markdownlint-enable -->
 
 
 
@@ -6659,7 +7134,9 @@ Claims one-time keys for use in pre-key messages.
 | `200` | The claimed keys. |
 
 
-### 200 response
+<!-- markdownlint-disable -->
+<h3>200 response</h3> 
+<!-- markdownlint-enable -->
 
 
 
@@ -6731,10 +7208,14 @@ Returns the current devices and identity keys for the given users.
 ---
 
 
-## Request
+<!-- markdownlint-disable -->
+<h2>Request</h2> 
+<!-- markdownlint-enable -->
 
 
-### Request body
+#<!-- markdownlint-disable -->
+<h2>Request</h2> 
+<!-- markdownlint-enable --> body
 
 
 
@@ -6744,7 +7225,9 @@ Returns the current devices and identity keys for the given users.
 | `device_keys` | `{[User ID](/v1.11/appendices#user-identifiers): [string]}` | **Required:** The keys to be downloaded. A map from user ID, to a list of  device IDs, or to an empty list to indicate all devices for the  corresponding user. Requested users must be local to the  receiving homeserver. |
 
 
-### Request body example
+#<!-- markdownlint-disable -->
+<h2>Request</h2> 
+<!-- markdownlint-enable --> body example
 
 
 
@@ -6764,7 +7247,9 @@ Returns the current devices and identity keys for the given users.
 ---
 
 
-## Responses
+<!-- markdownlint-disable -->
+<h2>Responses</h2> 
+<!-- markdownlint-enable -->
 
 
 
@@ -6774,7 +7259,9 @@ Returns the current devices and identity keys for the given users.
 | `200` | The device information. |
 
 
-### 200 response
+<!-- markdownlint-disable -->
+<h3>200 response</h3> 
+<!-- markdownlint-enable -->
 
 
 
@@ -7055,7 +7542,9 @@ Servers MUST use the server described in the [Matrix
 
 
 
-# GET
+<!-- markdownlint-disable -->
+<h1>GET</h1> 
+<!-- markdownlint-enable -->
 /\_matrix/federation/v1/media/download/{mediaId}
 
 
@@ -7080,10 +7569,14 @@ Servers MUST use the server described in the [Matrix
 ---
 
 
-## Request
+<!-- markdownlint-disable -->
+<h2>Request</h2> 
+<!-- markdownlint-enable -->
 
 
-### Request parameters
+#<!-- markdownlint-disable -->
+<h2>Request</h2> 
+<!-- markdownlint-enable --> parameters
 
 
 
@@ -7107,7 +7600,9 @@ query parameters
 ---
 
 
-## Responses
+<!-- markdownlint-disable -->
+<h2>Responses</h2> 
+<!-- markdownlint-enable -->
 
 
 
@@ -7120,7 +7615,9 @@ query parameters
 | `504` | The content is not yet available. A [standard error response](/v1.11/client-server-api/#standard-error-response)  will be returned with the `errcode` `M_NOT_YET_UPLOADED`. |
 
 
-### 200 response
+<!-- markdownlint-disable -->
+<h3>200 response</h3> 
+<!-- markdownlint-enable -->
 
 
 
@@ -7214,7 +7711,9 @@ Error
 
 
 
-# GET
+<!-- markdownlint-disable -->
+<h1>GET</h1> 
+<!-- markdownlint-enable -->
 /\_matrix/federation/v1/media/thumbnail/{mediaId}
 
 
@@ -7244,10 +7743,14 @@ Download a thumbnail of content from the content repository.
 ---
 
 
-## Request
+<!-- markdownlint-disable -->
+<h2>Request</h2> 
+<!-- markdownlint-enable -->
 
 
-### Request parameters
+#<!-- markdownlint-disable -->
+<h2>Request</h2> 
+<!-- markdownlint-enable --> parameters
 
 
 
@@ -7275,7 +7778,9 @@ query parameters
 ---
 
 
-## Responses
+<!-- markdownlint-disable -->
+<h2>Responses</h2> 
+<!-- markdownlint-enable -->
 
 
 
@@ -7290,7 +7795,9 @@ query parameters
 | `504` | The content is not yet available. A [standard error response](/v1.11/client-server-api/#standard-error-response)  will be returned with the `errcode` `M_NOT_YET_UPLOADED`. |
 
 
-### 200 response
+<!-- markdownlint-disable -->
+<h3>200 response</h3> 
+<!-- markdownlint-enable -->
 
 
 
