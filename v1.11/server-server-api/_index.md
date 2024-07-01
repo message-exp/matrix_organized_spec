@@ -1,55 +1,31 @@
-
 # Server-Server API
 
+Matrix 主伺服器使用聯邦 API（也稱為伺服器-伺服器 API）進行通信。
+主伺服器使用這些 API 即時推送消息給其他伺服器、從其他伺服器檢索歷史消息，
+以及查詢其他伺服器上使用者的個人資料和在線狀態資訊。
 
-Matrix homeservers use the Federation APIs (also known as server-server
- APIs) to communicate with each other. Homeservers use these APIs to push
- messages to each other in real-time, to retrieve historic messages from
- each other, and to query profile and presence information about users on
- each other’s servers.
+這些 API 通過伺服器之間的 HTTPS 請求來實現。
+這些 HTTPS 請求在 TLS 傳輸層使用公開密鑰簽名進行強認證，
+在 HTTP 層則使用公開密鑰簽名進行 HTTP 授權標頭認證。
 
+主伺服器之間主要有三種通信方式：
 
-The APIs are implemented using HTTPS requests between each of the
- servers. These HTTPS requests are strongly authenticated using public
- key signatures at the TLS transport layer and using public key
- signatures in HTTP Authorization headers at the HTTP layer.
+1. **持久數據單元 (Persistent Data Units, PDUs)**：
+   這些事件從一個主伺服器廣播到加入相同房間（由房間 ID 標識）的其他主伺服器。
+   它們被長期存儲，並記錄房間的消息和狀態歷史。
 
+   像電子郵件一樣，PDU 的發起伺服器有責任將事件傳遞給接收伺服器。
+   然而，PDU 使用發起伺服器的私鑰進行簽名，因此可以通過第三方伺服器傳遞。
 
-There are three main kinds of communication that occur between
- homeservers:
+2. **短暫數據單元 (Ephemeral Data Units, EDUs)**：
+   這些事件在主伺服器之間成對推送。
+   它們不被持久存儲，亦不是房間歷史的一部分，
+   接收伺服器也不需要回應。
 
+3. **查詢 (Queries)**：
+   這些是主伺服器之間單次的請求/回應交互，由一方發送 HTTPS GET 請求以獲取一些信息，另一方回應。這些請求不被持久存儲，亦不包含長期重要的歷史記錄。它們只是請求當前查詢時刻的快照狀態。
 
-Persistent Data Units (PDUs):
- These events are broadcast from one homeserver to any others that have
- joined the same room (identified by Room ID). They are persisted in
- long-term storage and record the history of messages and state for a
- room.
-
-
-Like email, it is the responsibility of the originating server of a PDU
- to deliver that event to its recipient servers. However PDUs are signed
- using the originating server’s private key so that it is possible to
- deliver them through third-party servers.
-
-
-Ephemeral Data Units (EDUs):
- These events are pushed between pairs of homeservers. They are not
- persisted and are not part of the history of a room, nor does the
- receiving homeserver have to reply to them.
-
-
-Queries:
- These are single request/response interactions between a given pair of
- servers, initiated by one side sending an HTTPS GET request to obtain
- some information, and responded by the other. They are not persisted and
- contain no long-term significant history. They simply request a snapshot
- state at the instant the query is made.
-
-
-EDUs and PDUs are further wrapped in an envelope called a Transaction,
- which is transferred from the origin to the destination homeserver using
- an HTTPS PUT request.
-
+EDU 和 PDU 進一步封裝在稱為交易 (Transaction) 的信封中，通過 HTTPS PUT 請求從發起伺服器傳輸到目標主伺服器。
 
 ## API standards
 
