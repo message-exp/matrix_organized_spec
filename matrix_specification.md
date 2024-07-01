@@ -43,10 +43,10 @@ Matrix 定義了一套用於去中心化通訊的開放 API，
 
 這個規範由以下部分組成：
 
-- [Client-Server API](/v1.11/client-server-api)
-- [Server-Server API](/v1.11/server-server-api)
-- [Application Service API](/v1.11/application-service-api)
-- [Identity Service API](/v1.11/identity-service-api)
+- [Client-Server API](/v1.11/client-server-api/_index.md)
+- [Server-Server API](/v1.11/server-server-api/_index.md)
+- [Application Service API](/v1.11/application-service-api/_index.md)
+- [Identity Service API](/v1.11/identity-service-api/_index.md)
 - [Push Gateway API](/v1.11/push-gateway-api)
 - [Room Versions](/v1.11/rooms)
 - [Appendices](/v1.11/appendices)
