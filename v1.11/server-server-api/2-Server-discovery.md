@@ -299,15 +299,19 @@ Matrix 主伺服器在 `/_matrix/key/v2/server` 路徑下發布其簽名密鑰�
 <!-- markdownlint-enable -->
 
 old_verify_keys
+<!-- markdownlint-disable -->
 | 名稱 | 類型 | 描述 |
 | --- | --- | --- |
 | `expired_ts` | `integer` | **必填：** 此密鑰過期的 POSIX 毫秒時間戳。 |
 | `key` | `string` | **必填：** [Unpadded base64](/v1.11/appendices/#unpadded-base64) 編碼的密鑰。 |
+<!-- markdownlint-enable -->
 
 verify_keys
+<!-- markdownlint-disable -->
 | 名稱 | 類型 | 描述 |
 | --- | --- | --- |
 | `key` | `string` | **必填：** [Unpadded base64](/v1.11/appendices/#unpadded-base64) 編碼的密鑰。 |
+<!-- markdownlint-enable -->
 
 ```json
 {
@@ -537,15 +541,19 @@ query parameters
 <!-- markdownlint-enable -->
 
 舊驗證密鑰
+<!-- markdownlint-disable -->
 | 名稱 | 類型 | 描述 |
 | --- | --- | --- |
 | `expired_ts` | `integer` | **必填：** 此密鑰過期的 POSIX 毫秒時間戳。 |
 | `key` | `string` | **必填：** [Unpadded base64](/v1.11/appendices/#unpadded-base64) 編碼的密鑰。 |
+<!-- markdownlint-enable -->
 
 驗證密鑰
+<!-- markdownlint-disable -->
 | 名稱 | 類型 | 描述 |
 | --- | --- | --- |
 | `key` | `string` | **必填：** [Unpadded base64](/v1.11/appendices/#unpadded-base64) 編碼的密鑰。 |
+<!-- markdownlint-enable -->
 
 ```json
 {
