@@ -2,11 +2,11 @@
 # 2. Server discovery
 
 - [2. Server discovery](#2-server-discovery)
-	- [2.1 Resolving server names](#21-resolving-server-names)
-	- [2.2 Server implementation](#22-server-implementation)
-	- [2.3 Retrieving server keys](#23-retrieving-server-keys)
-		- [2.3.1 Publishing Keys](#231-publishing-keys)
-		- [2.3.2 Querying Keys Through Another Server](#232-querying-keys-through-another-server)
+  - [2.1 Resolving server names](#21-resolving-server-names)
+  - [2.2 Server implementation](#22-server-implementation)
+  - [2.3 Retrieving server keys](#23-retrieving-server-keys)
+    - [2.3.1 Publishing Keys](#231-publishing-keys)
+    - [2.3.2 Querying Keys Through Another Server](#232-querying-keys-through-another-server)
 
 ## 2.1 Resolving server names
 
@@ -40,63 +40,57 @@
    - `/.well-known` 請求的架構在本節後面。
    - 如果回應無效（錯誤的 JSON、缺少屬性、非 200 回應等），則跳到第 4 步。
    - 如果回應有效，則解析 `m.server` 屬性為 `<delegated_hostname>[:<delegated_port>]`，並按以下步驟處理：
-     1. 如果 `<delegated_hostname>` 是 IP 字面量，
-   則應使用該 IP 地址和 `<delegated_port>`，
-   如果未提供端口則使用 8448。
-   目標伺服器必須提供該 IP 地址的有效 TLS 證書。
-   請求必須包含 IP 地址的 `Host` 標頭，
-   包括端口（如果提供）。
 
-     2. 如果 `<delegated_hostname>` 不是 IP 字面量，
-   並且提供 `<delegated_port>`，
-   則通過查找 `<delegated_hostname>` 的 CNAME、AAAA 或 A 記錄來發現 IP 地址。
-   使用解析出的 IP 地址和 `<delegated_port>`。
-   請求必須包含 `<delegated_hostname>:<delegated_port>` 的 `Host` 標頭。
-   目標伺服器必須提供 `<delegated_hostname>` 的有效證書。
-   **[v1.8 添加]** 如果 `<delegated_hostname>` 不是 IP 字面量，
-   並且未提供 `<delegated_port>`，
-   則查找 `_matrix-fed._tcp.<delegated_hostname>` 的 SRV 記錄。
-   這可能會導致另一個主機名（使用 AAAA 或 A 記錄解析）和端口。
-   請求應發送到解析出的 IP 地址和端口，
-   `Host` 標頭包含 `<delegated_hostname>`。
-   目標伺服器必須提供 `<delegated_hostname>` 的有效證書。
+     1. 如果 `<delegated_hostname>` 是 IP，
+        - 使用該 IP 地址和 `<delegated_port>`(預設port為8448)
+        - 目標伺服器必須提供該 IP 地址的有效 TLS 證書。
+        - 請求必須包含 IP 地址的 `Host` 標頭，包括端口（如果提供）。
 
-     3. **[已棄用]** 如果 `<delegated_hostname>` 不是 IP 字面量，
-   未提供 `<delegated_port>`，
-   並且未找到 `_matrix-fed._tcp.<delegated_hostname>` 的 SRV 記錄，
-   則查找 `_matrix._tcp.<delegated_hostname>` 的 SRV 記錄。
-   這可能會導致另一個主機名（使用 AAAA 或 A 記錄解析）和端口。
-   請求應發送到解析出的 IP 地址和端口，
-   `Host` 標頭包含 `<delegated_hostname>`。
-   目標伺服器必須提供 `<delegated_hostname>` 的有效證書。
+     2. 如果 `<delegated_hostname>` 不是 IP，並且提供 `<delegated_port>`，
+        - 查找 `<delegated_hostname>` 的 CNAME、AAAA 或 A 記錄來發現 IP 地址。
+        - 使用解析出的 IP 地址和 `<delegated_port>`。
+        - 請求必須包含 `<delegated_hostname>:<delegated_port>` 的 `Host` 標頭。
+        - 目標伺服器必須提供 `<delegated_hostname>` 的有效證書。
 
-     4. 如果未找到 SRV 記錄，
-  則使用 CNAME、AAAA 或 A 記錄解析 IP 地址。
-  然後使用解析出的 IP 地址和 8448 端口發送請求，
-  `Host` 標頭包含 `<delegated_hostname>`。
-  目標伺服器必須提供 `<delegated_hostname>` 的有效證書。
+     3. **[v1.8 添加]** 如果 `<delegated_hostname>` 不是 IP，且未提供 `<delegated_port>`，
+        - 查找 `_matrix-fed._tcp.<delegated_hostname>` 的 SRV 記錄。
+        - 可能會得到另一個主機名（使用 AAAA 或 A 記錄解析）和端口。
+        - 請求應發送到解析出的 IP 地址和端口，
+        - `Host` 標頭包含 `<delegated_hostname>`。
+        - 目標伺服器必須提供 `<delegated_hostname>` 的有效證書。
 
-1. **[v1.8 添加]** 如果 `/.well-known` 請求導致錯誤回應，
-則通過解析 `_matrix-fed._tcp.<hostname>` 的 SRV 記錄找到伺服器。
-這可能會導致主機名（使用 AAAA 或 A 記錄解析）和端口。
-請求發送到解析出的 IP 地址和端口，
-`Host` 標頭包含 `<hostname>`。
-目標伺服器必須提供 `<hostname>` 的有效證書。
+     4. ~~**[已棄用]** 如果 `<delegated_hostname>` 不是 IP，未提供 `<delegated_port>`，並且未找到 `_matrix-fed._tcp.<delegated_hostname>` 的 SRV 記錄，~~
+        - ~~查找 `_matrix._tcp.<delegated_hostname>` 的 SRV 記錄。~~
+        - ~~可能得到另一個主機名（使用 AAAA 或 A 記錄解析）和端口。~~
+        - ~~請求應發送到解析出的 IP 地址和端口，~~
+        - ~~`Host` 標頭包含 `<delegated_hostname>`。~~
+        - ~~目標伺服器必須提供 `<delegated_hostname>` 的有效證書。~~
 
-1. **[已棄用]** 如果 `/.well-known` 請求導致錯誤回應，
+     5. 如果未找到 SRV 記錄，
+        - 則使用 CNAME、AAAA 或 A 記錄解析 IP 地址。
+        - 使用解析出的 IP 地址和 8448 端口發送請求，
+        - `Host` 標頭包含 `<delegated_hostname>`。
+        - 目標伺服器必須提供 `<delegated_hostname>` 的有效證書。
+
+4. **[v1.8 添加]** 如果 `/.well-known` 請求導致錯誤回應，
+   - 解析 `_matrix-fed._tcp.<hostname>` 的 SRV 記錄找到伺服器。
+   - 可能會得到主機名（使用 AAAA 或 A 記錄解析）和端口。
+   - 請求發送到解析出的 IP 地址和端口，
+   - `Host` 標頭包含 `<hostname>`。
+   - 目標伺服器必須提供 `<hostname>` 的有效證書。
+
+5. ~~**[已棄用]** 如果 `/.well-known` 請求導致錯誤回應，
 並且未找到 `_matrix-fed._tcp.<hostname>` 的 SRV 記錄，
 則通過解析 `_matrix._tcp.<hostname>` 的 SRV 記錄找到伺服器。
 這可能會導致主機名（使用 AAAA 或 A 記錄解析）和端口。
 請求發送到解析出的 IP 地址和端口，
 `Host` 標頭包含 `<hostname>`。
-目標伺服器必須提供 `<hostname>` 的有效證書。
+目標伺服器必須提供 `<hostname>` 的有效證書。~~
 
-1. 如果 `/.well-known` 請求返回錯誤回應，
-並且未找到 SRV 記錄，
-則使用 CNAME、AAAA 和 A 記錄解析 IP 地址。
-請求發送到解析出的 IP 地址，
-使用 8448 端口和 `Host` 標頭包含 `<hostname>`。
-目標伺服器必須提供 `<hostname>` 的有效證書。
+6. 如果 `/.well-known` 請求返回錯誤回應，並且未找到 SRV 記錄，
+   - 使用 CNAME、AAAA 和 A 記錄解析 IP 地址。
+   - 請求發送到解析出的 IP 地址，使用 8448 端口和 `Host` 標頭包含 `<hostname>`。
+   - 目標伺服器必須提供 `<hostname>` 的有效證書。
 
 > **info:**
 >
@@ -137,15 +131,11 @@
 | --- | --- |
 | 需要認證： | 否 |
 
----
-
 <!-- markdownlint-disable -->
 <h2>Request</h2> 
 <!-- markdownlint-enable -->
 
 無請求參數或請求主體。
-
----
 
 <!-- markdownlint-disable -->
 <h2>Responses</h2> 
@@ -171,9 +161,7 @@
 <!-- markdownlint-disable -->
 | 名稱 | 類型 | 描述 |
 | --- | --- | --- |
-| `m.server` | `string` | 用於委派伺服器-伺服器通訊的伺服器名稱，
-帶有可選端口。
-委派伺服器名稱使用與[附錄中的伺服器名稱](/v1.11/appendices/#server-name)相同的語法。
+| `m.server` | `string` | 用於委派伺服器-伺服器通訊的伺服器名稱，帶有可選端口。委派伺服器名稱使用與[附錄中的伺服器名稱](/v1.11/appendices/#server-name)相同的語法。
  |
 <!-- markdownlint-enable -->
 
@@ -183,95 +171,53 @@
 }
 ```
 
----
-整理
-
-1. **伺服器名稱**
-   - 每個 Matrix 主伺服器由主機名和可選的端口組成的伺服器名稱標識。可應用時，委派的伺服器名稱使用相同的語法。
-   
-2. **名稱解析流程**
-   - **IP 字面量**：使用該 IP 地址和給定的端口號（默認 8448）。目標伺服器必須提供有效的 IP 地址證書，`Host` 標頭設置為伺服器名稱。
-   - **非 IP 字面量且包含端口**：使用 CNAME、AAAA 或 A 記錄解析主機名。請求發送到解析出的 IP 地址和端口，`Host` 標頭使用原始伺服器名稱（帶端口）。
-   - **非 IP 字面量且不包含端口**：發送 HTTPS 請求到 `https://<hostname>/.well-known/matrix/server`，遵循 30x 重定向，並緩存回應。有效回應解析 `m.server` 屬性並進一步處理。
-   
-3. **處理委派伺服器**
-   - **IP 字面量**：使用 IP 地址和 `<delegated_port>`（默認 8448）。目標伺服器提供有效的 IP 地址證書，請求必須包含 IP 地址的 `Host` 標頭。
-   - **非 IP 字面量且包含端口**：查找 `<delegated_hostname>` 的 CNAME、AAAA 或 A 記錄。使用解析出的 IP 地址和 `<delegated_port>`，`Host` 標頭設置為 `<delegated_hostname>:<delegated_port>`。
-   - **非 IP 字面量且不包含端口**：查找 `_matrix-fed._tcp.<delegated_hostname>` 的 SRV 記錄。請求發送到解析出的 IP 地址和端口，`Host` 標頭設置為 `<delegated_hostname>`。
-   - **已棄用步驟**：查找 `_matrix._tcp.<delegated_hostname>` 的 SRV 記錄，請求發送到解析出的 IP 地址和端口，`Host` 標頭設置為 `<delegated_hostname>`。
-   - **無 SRV 記錄**：使用 CNAME、AAAA 或 A 記錄解析 IP 地址，請求發送到解析出的 IP 地址和 8448 端口，`Host` 標頭設置為 `<delegated_hostname>`。
-
-4. **處理錯誤回應**
-   - 查找 `_matrix-fed._tcp.<hostname>` 的 SRV 記錄，請求發送到解析出的 IP 地址和端口，`Host` 標頭設置為 `<hostname>`。
-   - **已棄用步驟**：查找 `_matrix._tcp.<hostname>` 的 SRV 記錄，請求發送到解析出的 IP 地址和端口，`Host` 標頭設置為 `<hostname>`。
-   - **無 SRV 記錄**：使用 CNAME、AAAA 和 A 記錄解析 IP 地址，請求發送到解析出的 IP 地址和 8448 端口，`Host` 標頭設置為 `<hostname>`。
-
-5. **附加資訊**
-   - 使用 `<hostname>` 而不是 `<delegated_hostname>` 作為 SRV 委派的原因：
-     - DNS 不安全，需要通過 TLS 驗證。
-     - 與 RFC6125 和其他使用 SRV 記錄的應用（如 XMPP）保持一致。
-   - SRV 記錄的目標不能是 CNAME。
-   - 步驟 3.4 和 5 已被棄用，因為使用了未註冊的服務名稱。未來版本可能移除，伺服器管理員被鼓勵使用 `.well-known`。
-
-這樣的整理可以幫助快速了解伺服器名稱解析和處理流程的重點內容。
-
----
-
 ## 2.2 Server implementation
 
 <!-- markdownlint-disable -->
 <h1>GET <a>/\_matrix/federation/v1/version</a></h1> 
 <!-- markdownlint-enable -->
 
----
+獲取此主伺服器的執行名稱和版本。
 
-Get the implementation name and version of this homeserver.
-
-| Rate-limited: | No |
+| 速率限制： | 否 |
 | --- | --- |
-| Requires authentication: | No |
-
----
+| 需要認證： | 否 |
 
 <!-- markdownlint-disable -->
 <h2>Request</h2> 
 <!-- markdownlint-enable -->
 
-No request parameters or request body.
-
----
+無請求參數或請求主體。
 
 <!-- markdownlint-disable -->
 <h2>Responses</h2> 
 <!-- markdownlint-enable -->
 
-| Status | Description |
+| 狀態 | 描述 |
 | --- | --- |
-| `200` | The implementation name and version of this homeserver. |
+| `200` | 此主伺服器的實現名稱和版本。 |
 
 <!-- markdownlint-disable -->
-<h3>200 response</h3> 
+<h3>200 Responses</h3> 
 <!-- markdownlint-enable -->
 
-| Name | Type | Description |
+| 名稱 | 類型 | 描述 |
 | --- | --- | --- |
 | `server` | `[Server](#get_matrixfederationv1version_response-200_server)` |  |
 
 Server
-| Name | Type | Description |
+| 名稱 | 類型 | 描述 |
 | --- | --- | --- |
-| `name` | `string` | Arbitrary name that identify this implementation. |
-| `version` | `string` | Version of this implementation. The version format depends on the implementation. |
+| `name` | `string` | 辨識此施行的任意名稱。 |
+| `version` | `string` | 此施行的版本。版本格式取決於施行。 |
 
 ```json
-
 {
   "server": {
     "name": "My_Homeserver_Implementation",
     "version": "ArbitraryVersionNumber"
   }
 }
-
 ```
 
 ## 2.3 Retrieving server keys
@@ -299,105 +245,117 @@ This approach is borrowed from the [Perspectives
  free to pick which notary servers they trust and can corroborate the
  keys returned by a given notary server by querying other servers.
 
+ ---
+ ---
+
+ 曾經有一個“版本 1”的密鑰交換規範，由於意義不大，已從規範中移除。
+ 可以從[歷史草稿](https://github.com/matrix-org/matrix-doc/blob/51faf8ed2e4a63d4cfd6d23183698ed169956cc0/specification/server_server_api.rst#232version-1)中查看。
+
+每個主伺服器在 `/_matrix/key/v2/server` 下發布其公鑰。
+主伺服器通過直接獲取 `/_matrix/key/v2/server`
+或通過使用 `/_matrix/key/v2/query/{serverName}` API 查詢中間公證伺服器來查詢密鑰。
+中間公證伺服器代表另一個伺服器查詢 `/_matrix/key/v2/server` API，
+並用自己的密鑰簽署回應。
+伺服器可以查詢多個公證伺服器，
+以確保它們報告相同的公鑰。
+
+這種方法借鑒自 [Perspectives Project](https://web.archive.org/web/20170702024706/https://perspectives-project.org/)，
+但經過修改以包含 NACL 密鑰並使用 JSON 而不是 XML。
+這種方法的優點是避免了單一信任根，
+因為每個伺服器可以自由選擇信任的公證伺服器，
+並且可以通過查詢其他伺服器來核實給定公證伺服器返回的密鑰。
+
 ### 2.3.1 Publishing Keys
 
-Homeservers publish their signing keys in a JSON object at
- `/_matrix/key/v2/server`. The response contains a list of
- `verify_keys` that are valid for signing federation requests made by the
- homeserver and for signing events. It contains a list of
- `old_verify_keys` which are only valid for signing events.
+Matrix 主伺服器在 `/_matrix/key/v2/server` 路徑下發布其簽名密鑰。
+回應包含一個 `verify_keys` 列表，
+這些密鑰對於簽名主伺服器發出的聯邦請求和事件是有效的。
+此外，還包含一個 `old_verify_keys` 列表，
+這些密鑰僅對簽名事件有效。
 
 <!-- markdownlint-disable -->
-<h1>GET</h1> 
+<h1>GET <a>/_matrix/key/v2/server</a></h1> 
 <!-- markdownlint-enable -->
-/\_matrix/key/v2/server
 
----
+獲取主伺服器發布的簽名密鑰。
+主伺服器可以有任意數量的有效密鑰和舊密鑰。
 
-Gets the homeserver’s published signing keys.
- The homeserver may have any number of active keys and may have a
- number of old keys.
+中間公證伺服器應緩存回應的一半壽命，
+以避免提供過期的回應。
+發起伺服器應避免返回壽命少於一小時的回應，
+以避免重複請求即將過期的證書。
+請求伺服器應限制查詢證書的頻率，
+以避免請求泛濫伺服器。
 
-Intermediate notary servers should cache a response for half of its
- lifetime to avoid serving a stale response. Originating servers should
- avoid returning responses that expire in less than an hour to avoid
- repeated requests for a certificate that is about to expire. Requesting
- servers should limit how frequently they query for certificates to
- avoid flooding a server with requests.
+如果伺服器無法回應此請求，
+中間公證伺服器應繼續返回從伺服器接收到的最後回應，
+以便仍然可以檢查舊事件的簽名。
 
-If the server fails to respond to this request, intermediate notary
- servers should continue to return the last response they received
- from the server so that the signatures of old events can still be
- checked.
-
-| Rate-limited: | No |
+| 速率限制： | 否 |
 | --- | --- |
-| Requires authentication: | No |
-
----
+| 需要認證： | 否 |
 
 <!-- markdownlint-disable -->
 <h2>Request</h2> 
 <!-- markdownlint-enable -->
 
-No request parameters or request body.
-
----
+無請求參數或請求主體。
 
 <!-- markdownlint-disable -->
 <h2>Responses</h2> 
 <!-- markdownlint-enable -->
 
-| Status | Description |
+| 狀態 | 描述 |
 | --- | --- |
-| `200` | The homeserver’s keys |
+| `200` | 主伺服器的密鑰 |
 
 <!-- markdownlint-disable -->
-<h3>200 response</h3> 
+<h3>200 Responses</h3> 
 <!-- markdownlint-enable -->
 
-Server Keys
-| Name | Type | Description |
+<!-- markdownlint-disable -->
+伺服器密鑰
+| 名稱 | 類型 | 描述 |
 | --- | --- | --- |
-| `old_verify_keys` | `{string: [Old Verify Key](#get_matrixkeyv2server_response-200_old-verify-key)}` | The public keys that the server used to use and when it stopped using them. The object’s key is the algorithm and version combined (`ed25519` being the  algorithm and `0ldK3y` being the version in the example below). Together,  this forms the Key ID. The version must have characters matching the regular  expression `[a-zA-Z0-9_]`. |
-| `server_name` | `string` | **Required:** DNS name of the homeserver. |
-| `signatures` | `{string: {string: string}}` | Digital signatures for this object signed using the `verify_keys`. The signature is calculated using the process described at [Signing JSON](/v1.11/appendices/#signing-json). |
-| `valid_until_ts` | `integer` | POSIX timestamp in milliseconds when the list of valid keys should be refreshed.  This field MUST be ignored in room versions 1, 2, 3, and 4. Keys used beyond this  timestamp MUST be considered invalid, depending on the  [room version specification](/v1.11/rooms).   Servers MUST use the lesser of this field and 7 days into the future when  determining if a key is valid. This is to avoid a situation where an attacker  publishes a key which is valid for a significant amount of time without a way  for the homeserver owner to revoke it. |
-| `verify_keys` | `{string: [Verify Key](#get_matrixkeyv2server_response-200_verify-key)}` | **Required:**  Public keys of the homeserver for verifying digital signatures. The object’s key is the algorithm and version combined (`ed25519` being the  algorithm and `abc123` being the version in the example below). Together,  this forms the Key ID. The version must have characters matching the regular  expression `[a-zA-Z0-9_]`. |
+| `old_verify_keys` | `{string: [Old Verify Key](#get_matrixkeyv2server_response-200_old-verify-key)}` | 伺服器以前使用的公鑰以及停止使用的時間。對象的key是算法和版本的組合（`ed25519` 是算法，`0ldK3y` 是版本）。這形成了密鑰 ID。版本必須包含匹配正則表達式 `[a-zA-Z0-9_]` 的字符。 |
+| `server_name` | `string` | **必填：** 主伺服器的 DNS 名稱。 |
+| `signatures` | `{string: {string: string}}` | 使用 `verify_keys` 簽署此對象的數字簽名。簽名過程描述在 [簽署 JSON](/v1.11/appendices/#signing-json)。 |
+| `valid_until_ts` | `integer` | POSIX 毫秒時間戳，表示應刷新有效密鑰的時間。此字段在房間版本 1、2、3 和 4 中必須被忽略。超過此時間戳使用的密鑰必須被視為無效，具體取決於 [房間版本規範](/v1.11/rooms)。伺服器在確定密鑰是否有效時必須使用此字段和未來 7 天中的較小者。這是為了避免攻擊者發布有效時間過長且無法被主伺服器所有者撤銷的密鑰。 |
+| `verify_keys` | `{string: [Verify Key](#get_matrixkeyv2server_response-200_verify-key)}` | **必填：** 用於驗證數字簽名的主伺服器公鑰。對象的key是算法和版本的組合（`ed25519` 是算法，`abc123` 是版本）。這形成了密鑰 ID。版本必須包含匹配正則表達式 `[a-zA-Z0-9_]` 的字符。 |
+<!-- markdownlint-enable -->
 
-Old Verify Key
-| Name | Type | Description |
+old_verify_keys
+| 名稱 | 類型 | 描述 |
 | --- | --- | --- |
-| `expired_ts` | `integer` | **Required:** POSIX timestamp in milliseconds for when this key expired. |
-| `key` | `string` | **Required:** The [Unpadded  base64](/v1.11/appendices/#unpadded-base64) encoded key. |
+| `expired_ts` | `integer` | **必填：** 此密鑰過期的 POSIX 毫秒時間戳。 |
+| `key` | `string` | **必填：** [Unpadded base64](/v1.11/appendices/#unpadded-base64) 編碼的密鑰。 |
 
-Verify Key
-| Name | Type | Description |
+verify_keys
+| 名稱 | 類型 | 描述 |
 | --- | --- | --- |
-| `key` | `string` | **Required:** The [Unpadded  base64](/v1.11/appendices/#unpadded-base64) encoded key. |
+| `key` | `string` | **必填：** [Unpadded base64](/v1.11/appendices/#unpadded-base64) 編碼的密鑰。 |
 
-```
+```json
 {
-  "old_verify_keys": {
-    "ed25519:0ldk3y": {
-      "expired_ts": 1532645052628,
-      "key": "VGhpcyBzaG91bGQgYmUgeW91ciBvbGQga2V5J3MgZWQyNTUxOSBwYXlsb2FkLg"
-    }
-  },
+    "old_verify_keys": {
+        "ed25519:0ldk3y": {
+        "expired_ts": 1532645052628,
+        "key": "VGhpcyBzaG91bGQgYmUgeW91ciBvbGQga2V5J3MgZWQyNTUxOSBwYXlsb2FkLg"
+        }
+    },
   "server_name": "example.org",
-  "signatures": {
-    "example.org": {
-      "ed25519:auto2": "VGhpcyBzaG91bGQgYWN0dWFsbHkgYmUgYSBzaWduYXR1cmU"
-    }
-  },
-  "valid_until_ts": 1652262000000,
-  "verify_keys": {
-    "ed25519:abc123": {
-      "key": "VGhpcyBzaG91bGQgYmUgYSByZWFsIGVkMjU1MTkgcGF5bG9hZA"
-    }
+    "signatures": {
+        "example.org": {
+            "ed25519:auto2": "VGhpcyBzaG91bGQgYWN0dWFsbHkgYmUgYSBzaWduYXR1cmU"
+        }
+    },
+    "valid_until_ts": 1652262000000,
+    "verify_keys": {
+        "ed25519:abc123": {
+            "key": "VGhpcyBzaG91bGQgYmUgYSByZWFsIGVkMjU1MTkgcGF5bG9hZA"
+        }
   }
 }
-
 ```
 
 ### 2.3.2 Querying Keys Through Another Server
@@ -452,11 +410,11 @@ Query Criteria
 ```
 {
   "server_keys": {
-    "example.org": {
-      "ed25519:abc123": {
-        "minimum_valid_until_ts": 1234567890
-      }
-    }
+	"example.org": {
+	  "ed25519:abc123": {
+		"minimum_valid_until_ts": 1234567890
+	  }
+	}
   }
 }
 
@@ -503,29 +461,29 @@ Verify Key
 ```
 {
   "server_keys": [
-    {
-      "old_verify_keys": {
-        "ed25519:0ldk3y": {
-          "expired_ts": 1532645052628,
-          "key": "VGhpcyBzaG91bGQgYmUgeW91ciBvbGQga2V5J3MgZWQyNTUxOSBwYXlsb2FkLg"
-        }
-      },
-      "server_name": "example.org",
-      "signatures": {
-        "example.org": {
-          "ed25519:abc123": "VGhpcyBzaG91bGQgYWN0dWFsbHkgYmUgYSBzaWduYXR1cmU"
-        },
-        "notary.server.com": {
-          "ed25519:010203": "VGhpcyBpcyBhbm90aGVyIHNpZ25hdHVyZQ"
-        }
-      },
-      "valid_until_ts": 1652262000000,
-      "verify_keys": {
-        "ed25519:abc123": {
-          "key": "VGhpcyBzaG91bGQgYmUgYSByZWFsIGVkMjU1MTkgcGF5bG9hZA"
-        }
-      }
-    }
+	{
+	  "old_verify_keys": {
+		"ed25519:0ldk3y": {
+		  "expired_ts": 1532645052628,
+		  "key": "VGhpcyBzaG91bGQgYmUgeW91ciBvbGQga2V5J3MgZWQyNTUxOSBwYXlsb2FkLg"
+		}
+	  },
+	  "server_name": "example.org",
+	  "signatures": {
+		"example.org": {
+		  "ed25519:abc123": "VGhpcyBzaG91bGQgYWN0dWFsbHkgYmUgYSBzaWduYXR1cmU"
+		},
+		"notary.server.com": {
+		  "ed25519:010203": "VGhpcyBpcyBhbm90aGVyIHNpZ25hdHVyZQ"
+		}
+	  },
+	  "valid_until_ts": 1652262000000,
+	  "verify_keys": {
+		"ed25519:abc123": {
+		  "key": "VGhpcyBzaG91bGQgYmUgYSByZWFsIGVkMjU1MTkgcGF5bG9hZA"
+		}
+	  }
+	}
   ]
 }
 
@@ -606,29 +564,29 @@ Verify Key
 ```
 {
   "server_keys": [
-    {
-      "old_verify_keys": {
-        "ed25519:0ldk3y": {
-          "expired_ts": 1532645052628,
-          "key": "VGhpcyBzaG91bGQgYmUgeW91ciBvbGQga2V5J3MgZWQyNTUxOSBwYXlsb2FkLg"
-        }
-      },
-      "server_name": "example.org",
-      "signatures": {
-        "example.org": {
-          "ed25519:abc123": "VGhpcyBzaG91bGQgYWN0dWFsbHkgYmUgYSBzaWduYXR1cmU"
-        },
-        "notary.server.com": {
-          "ed25519:010203": "VGhpcyBpcyBhbm90aGVyIHNpZ25hdHVyZQ"
-        }
-      },
-      "valid_until_ts": 1652262000000,
-      "verify_keys": {
-        "ed25519:abc123": {
-          "key": "VGhpcyBzaG91bGQgYmUgYSByZWFsIGVkMjU1MTkgcGF5bG9hZA"
-        }
-      }
-    }
+	{
+	  "old_verify_keys": {
+		"ed25519:0ldk3y": {
+		  "expired_ts": 1532645052628,
+		  "key": "VGhpcyBzaG91bGQgYmUgeW91ciBvbGQga2V5J3MgZWQyNTUxOSBwYXlsb2FkLg"
+		}
+	  },
+	  "server_name": "example.org",
+	  "signatures": {
+		"example.org": {
+		  "ed25519:abc123": "VGhpcyBzaG91bGQgYWN0dWFsbHkgYmUgYSBzaWduYXR1cmU"
+		},
+		"notary.server.com": {
+		  "ed25519:010203": "VGhpcyBpcyBhbm90aGVyIHNpZ25hdHVyZQ"
+		}
+	  },
+	  "valid_until_ts": 1652262000000,
+	  "verify_keys": {
+		"ed25519:abc123": {
+		  "key": "VGhpcyBzaG91bGQgYmUgYSByZWFsIGVkMjU1MTkgcGF5bG9hZA"
+		}
+	  }
+	}
   ]
 }
 
