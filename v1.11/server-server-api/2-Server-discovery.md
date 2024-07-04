@@ -222,34 +222,8 @@ Server
 
 ## 2.3 Retrieving server keys
 
- There was once a “version 1” of the key exchange. It has been removed
- from the specification due to lack of significance. It may be reviewed
- [from
- the historical
- draft](https://github.com/matrix-org/matrix-doc/blob/51faf8ed2e4a63d4cfd6d23183698ed169956cc0/specification/server_server_api.rst#232version-1).
-
-Each homeserver publishes its public keys under
- `/_matrix/key/v2/server`. Homeservers query for keys by either
- getting `/_matrix/key/v2/server` directly or by querying an
- intermediate notary server using a
- `/_matrix/key/v2/query/{serverName}` API. Intermediate notary
- servers query the `/_matrix/key/v2/server` API on behalf of
- another server and sign the response with their own key. A server may
- query multiple notary servers to ensure that they all report the same
- public keys.
-
-This approach is borrowed from the [Perspectives
- Project](https://web.archive.org/web/20170702024706/https://perspectives-project.org/),
- but modified to include the NACL keys and to use JSON instead of XML. It
- has the advantage of avoiding a single trust-root since each server is
- free to pick which notary servers they trust and can corroborate the
- keys returned by a given notary server by querying other servers.
-
- ---
- ---
-
- 曾經有一個“版本 1”的密鑰交換規範，由於意義不大，已從規範中移除。
- 可以從[歷史草稿](https://github.com/matrix-org/matrix-doc/blob/51faf8ed2e4a63d4cfd6d23183698ed169956cc0/specification/server_server_api.rst#232version-1)中查看。
+曾經有一個“版本 1”的密鑰交換規範，由於意義不大，已從規範中移除。
+可以從[歷史草稿](https://github.com/matrix-org/matrix-doc/blob/51faf8ed2e4a63d4cfd6d23183698ed169956cc0/specification/server_server_api.rst#232version-1)中查看。
 
 每個主伺服器在 `/_matrix/key/v2/server` 下發布其公鑰。
 主伺服器通過直接獲取 `/_matrix/key/v2/server`
@@ -371,6 +345,16 @@ Notary servers can return keys for servers that are offline or having
  issues serving their own keys by using cached responses. Keys can be
  queried from multiple servers to mitigate against DNS spoofing.
 
+伺服器可以通過公證伺服器查詢另一個伺服器的密鑰。
+公證伺服器可能是另一個主伺服器。
+公證伺服器將使用 `/_matrix/key/v2/server` API 從被查詢伺服器檢索密鑰。
+公證伺服器在返回結果之前，
+還會對被查詢伺服器的回應進行簽名。
+
+公證伺服器可以通過使用緩存的回應來返回離線或服務有問題的伺服器的密鑰。
+可以從多個伺服器查詢密鑰，
+以減少 DNS 欺騙的風險。
+
 <!-- markdownlint-disable -->
 <h1>POST <a>/\_matrix/key/v2/query</a></h1> 
 <!-- markdownlint-enable -->
@@ -489,6 +473,144 @@ Verify Key
 
 ```
 
+---
+---
+
+<!-- markdownlint-disable -->
+<h1>POST <a>/\_matrix/key/v2/query</a></h1> 
+<!-- markdownlint-enable -->
+
+---
+
+批量格式查詢多個伺服器的密鑰。接收（公證）伺服器必須對被查詢伺服器返回的密鑰進行簽名。
+
+| 速率限制： | 否 |
+| --- | --- |
+| 需要認證： | 否 |
+
+---
+
+<!-- markdownlint-disable -->
+<h2>Request</h2> 
+<!-- markdownlint-enable -->
+
+Request body
+
+<!-- markdownlint-disable -->
+| 名稱 | 類型 | 描述 |
+| --- | --- | --- |
+| `server_keys` | `{string: {string: [Query Criteria](#post_matrixkeyv2query_request_query-criteria)}}` | **必填：** 查詢條件。對象的外部 `string` 鍵是伺服器名稱（例如：`matrix.org`）。內部 `string` 鍵是特定伺服器要查詢的密鑰 ID。如果沒有提供要查詢的密鑰 ID，公證伺服器應查詢所有密鑰。如果沒有提供伺服器，公證伺服器必須在回應中返回空的 `server_keys` 數組。無論給定的密鑰 ID 為何，公證伺服器都可以返回多個密鑰。 |
+<!-- markdownlint-enable -->
+
+查詢條件
+<!-- markdownlint-disable -->
+| 名稱 | 類型 | 描述 |
+| --- | --- | --- |
+| `minimum_valid_until_ts` | `integer` | 請求伺服器所需的密鑰有效期至的毫秒 POSIX 時間戳。如果未提供，則使用公證伺服器確定的當前時間。 |
+<!-- markdownlint-enable -->
+
+Request body example
+
+```json
+{
+  "server_keys": {
+    "example.org": {
+      "ed25519:abc123": {
+        "minimum_valid_until_ts": 1234567890
+      }
+    }
+  }
+}
+```
+
+---
+
+<!-- markdownlint-disable -->
+<h2>Responses</h2> 
+<!-- markdownlint-enable -->
+
+| 狀態 | 描述 |
+| --- | --- |
+| `200` | 被查詢伺服器的密鑰，由公證伺服器簽名。無法返回離線且無緩存密鑰的伺服器，可能導致返回空數組。 |
+
+<!-- markdownlint-disable -->
+<h3>200 Responses</h3> 
+<!-- markdownlint-enable -->
+
+<!-- markdownlint-disable -->
+| 名稱 | 類型 | 描述 |
+| --- | --- | --- |
+| `server_keys` | `[[Server Keys](#post_matrixkeyv2query_response-200_server-keys)]` | 被查詢伺服器的密鑰，由公證伺服器簽名。 |
+<!-- markdownlint-enable -->
+
+伺服器密鑰
+<!-- markdownlint-disable -->
+| 名稱 | 類型 | 描述 |
+| --- | --- | --- |
+| `old_verify_keys` | `{string: [Old Verify Key](#post_matrixkeyv2query_response-200_old-verify-key)}` | 伺服器以前使用的公鑰以及停止使用的時間。對象的 key 是算法和版本的組合（`ed25519` 是算法，`0ldK3y` 是版本）。這形成了密鑰 ID。版本必須包含匹配正則表達式 `[a-zA-Z0-9_]` 的字符。 |
+| `server_name` | `string` | **必填：** 主伺服器的 DNS 名稱。 |
+| `signatures` | `{string: {string: string}}` | 使用 `verify_keys` 簽署此對象的數字簽名。簽名過程描述在 [簽署 JSON](/v1.11/appendices/#signing-json)。 |
+| `valid_until_ts` | `integer` | POSIX 毫秒時間戳，表示應刷新有效密鑰的時間。此字段在房間版本 1、2、3 和 4 中必須被忽略。超過此時間戳使用的密鑰必須被視為無效，具體取決於 [房間版本規範](/v1.11/rooms)。伺服器在確定密鑰是否有效時必須使用此字段和未來 7 天中的較小者。這是為了避免攻擊者發布有效時間過長且無法被主伺服器所有者撤銷的密鑰。 |
+| `verify_keys` | `{string: [Verify Key](#post_matrixkeyv2query_response-200_verify-key)}` | **必填：** 用於驗證數字簽名的主伺服器公鑰。對象的 key 是算法和版本的組合（`ed25519` 是算法，`abc123` 是版本）。這形成了密鑰 ID。版本必須包含匹配正則表達式 `[a-zA-Z0-9_]` 的字符。 |
+<!-- markdownlint-enable -->
+
+`old_verify_keys`
+<!-- markdownlint-disable -->
+| 名稱 | 類型 | 描述 |
+| --- | --- | --- |
+| `expired_ts` | `integer` | **必填：** 此密鑰過期的 POSIX 毫秒時間戳。 |
+| `key` | `string` | **必填：** [Unpadded base64](/v1.11/appendices/#unpadded-base64) 編碼的密鑰。 |
+<!-- markdownlint-enable -->
+
+`verify_keys`
+<!-- markdownlint-disable -->
+| 名稱 | 類型 | 描述 |
+| --- | --- | --- |
+| `key` | `string` | **必填：** [Unpadded base64](/v1.11/appendices/#unpadded-base64) 編碼的密鑰。 |
+<!-- markdownlint-enable -->
+
+```json
+{
+  "server_keys": [
+    {
+      "old_verify_keys": {
+        "ed25519:0ldk3y": {
+          "expired_ts": 1532645052628,
+          "key": "VGhpcyBzaG91bGQgYmUgeW91ciBvbGQga2V5J3MgZWQyNTUxOSBwYXlsb2FkLg"
+        }
+      },
+      "server_name": "example.org",
+      "signatures": {
+        "example.org": {
+          "ed25519:abc123": "VGhpcyBzaG91bGQgYWN0dWFsbHkgYmUgYSBzaWduYXR1cmU"
+        },
+        "notary.server.com": {
+          "ed25519:010203": "VGhpcyBpcyBhbm90aGVyIHNpZ25hdHVyZQ"
+        }
+      },
+      "valid_until_ts": 1652262000000,
+      "verify_keys": {
+        "ed25519:abc123": {
+          "key": "VGhpcyBzaG91bGQgYmUgYSByZWFsIGVkMjU1MTkgcGF5bG9hZA"
+        }
+      }
+    }
+  ]
+}
+```
+
+\*\*補充
+驗證時是將verify_keys當作驗證公鑰
+"signatures": {
+  "example.org": {
+    "ed25519:abc123": "VGhpcyBzaG91bGQgYWN0dWFsbHkgYmUgYSBzaWduYXR1cmU"
+  },
+}
+當作代驗證的資訊
+同時可能會傳來其他公證伺服器保存的公鑰
+就要先獲取其公鑰
+在針對此公鑰和資料去驗證
+
 <!-- markdownlint-disable -->
 <h1>GET</h1> 
 <!-- markdownlint-enable -->
@@ -591,3 +713,115 @@ Verify Key
 }
 
 ```
+
+---
+---
+
+<!-- markdownlint-disable -->
+<h1>GET <a>/_matrix/key/v2/query/{serverName}</a></h1> 
+<!-- markdownlint-enable -->
+
+查詢另一個伺服器的密鑰。接收（公證）伺服器必須對被查詢伺服器返回的密鑰進行簽名。
+
+| 速率限制： | 否 |
+| --- | --- |
+| 需要認證： | 否 |
+
+<!-- markdownlint-disable -->
+<h2>Request</h2> 
+<!-- markdownlint-enable -->
+
+Request parameters
+
+path parameters
+| 名稱 | 類型 | 描述 |
+| --- | --- | --- |
+| `serverName` | `string` | **必填：** 要查詢的伺服器的 DNS 名稱 |
+
+query parameters
+<!-- markdownlint-disable -->
+| 名稱 | 類型 | 描述 |
+| --- | --- | --- |
+| `minimum_valid_until_ts` | `integer` | 請求伺服器所需的密鑰有效期至的毫秒 POSIX 時間戳。如果未提供，則使用公證伺服器確定的當前時間。 |
+<!-- markdownlint-enable -->
+
+<!-- markdownlint-disable -->
+<h2>Responses</h2> 
+<!-- markdownlint-enable -->
+
+| 狀態 | 描述 |
+| --- | --- |
+| `200` | 伺服器的密鑰，或者如果伺服器無法聯繫且沒有可用的緩存密鑰，則返回空數組。 |
+
+<!-- markdownlint-disable -->
+<h3>200 response</h3> 
+<!-- markdownlint-enable -->
+
+<!-- markdownlint-disable -->
+| 名稱 | 類型 | 描述 |
+| --- | --- | --- |
+| `server_keys` | `[[Server Keys](#get_matrixkeyv2queryservername_response-200_server-keys)]` | 被查詢伺服器的密鑰，由公證伺服器簽名。 |
+<!-- markdownlint-enable -->
+
+伺服器密鑰
+<!-- markdownlint-disable -->
+| 名稱 | 類型 | 描述 |
+| --- | --- | --- |
+| `old_verify_keys` | `{string: [Old Verify Key](#get_matrixkeyv2queryservername_response-200_old-verify-key)}` | 伺服器以前使用的公鑰以及停止使用的時間。對象的 key 是算法和版本的組合（`ed25519` 是算法，`0ldK3y` 是版本）。這形成了密鑰 ID。版本必須包含匹配正則表達式 `[a-zA-Z0-9_]` 的字符。 |
+| `server_name` | `string` | **必填：** 主伺服器的 DNS 名稱。 |
+| `signatures` | `{string: {string: string}}` | 使用 `verify_keys` 簽署此對象的數字簽名。簽名過程描述在 [簽署 JSON](/v1.11/appendices/#signing-json)。 |
+| `valid_until_ts` | `integer` | POSIX 毫秒時間戳，表示應刷新有效密鑰的時間。此字段在房間版本 1、2、3 和 4 中必須被忽略。超過此時間戳使用的密鑰必須被視為無效，具體取決於 [房間版本規範](/v1.11/rooms)。伺服器在確定密鑰是否有效時必須使用此字段和未來 7 天中的較小者。這是為了避免攻擊者發布有效時間過長且無法被主伺服器所有者撤銷的密鑰。 |
+| `verify_keys` | `{string: [Verify Key](#get_matrixkeyv2queryservername_response-200_verify-key)}` | **必填：** 用於驗證數字簽名的主伺服器公鑰。對象的 key 是算法和版本的組合（`ed25519` 是算法，`abc123` 是版本）。這形成了密鑰 ID。版本必須包含匹配正則表達式 `[a-zA-Z0-9_]` 的字符。 |
+<!-- markdownlint-enable -->
+
+舊驗證密鑰
+| 名稱 | 類型 | 描述 |
+| --- | --- | --- |
+| `expired_ts` | `integer` | **必填：** 此密鑰過期的 POSIX 毫秒時間戳。 |
+| `key` | `string` | **必填：** [Unpadded base64](/v1.11/appendices/#unpadded-base64) 編碼的密鑰。 |
+
+驗證密鑰
+| 名稱 | 類型 | 描述 |
+| --- | --- | --- |
+| `key` | `string` | **必填：** [Unpadded base64](/v1.11/appendices/#unpadded-base64) 編碼的密鑰。 |
+
+```json
+{
+  "server_keys": [
+    {
+      "old_verify_keys": {
+        "ed25519:0ldk3y": {
+          "expired_ts": 1532645052628,
+          "key": "VGhpcyBzaG91bGQgYmUgeW91ciBvbGQga2V5J3MgZWQyNTUxOSBwYXlsb2FkLg"
+        }
+      },
+      "server_name": "example.org",
+      "signatures": {
+        "example.org": {
+          "ed25519:abc123": "VGhpcyBzaG91bGQgYWN0dWFsbHkgYmUgYSBzaWduYXR1cmU"
+        },
+        "notary.server.com": {
+          "ed25519:010203": "VGhpcyBpcyBhbm90aGVyIHNpZ25hdHVyZQ"
+        }
+      },
+      "valid_until_ts": 1652262000000,
+      "verify_keys": {
+        "ed25519:abc123": {
+          "key": "VGhpcyBzaG91bGQgYmUgYSByZWFsIGVkMjU1MTkgcGF5bG9hZA"
+        }
+      }
+    }
+  ]
+}
+```
+
+稍微總結下這段，
+
+- 如果查詢的是別人的伺服器:
+  - 在signatures內附上透過他們金鑰簽名過的公鑰，
+  - 在signatures內附上透過我們金鑰簽名過的公鑰
+  - 如果有其他信任的公證伺服器也可以一併附上
+  - 最後在verify_keys內附上**自己**伺服器簽名的公鑰
+  - 其他伺服器產生的公鑰必須另外向其他伺服器請求簽名公鑰
+- 如果查詢的是自己的伺服器:
+  - 一切都一樣，只是自己要另外找別的公證伺服器就是
