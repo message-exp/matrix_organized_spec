@@ -1,7 +1,5 @@
 # Client-Server API
 
-[![en](https://img.shields.io/badge/lang-en-purple.svg)](https://github.com/message-exp/matrix_organized_spec/tree/main/v1.11/client-server-api/en/_index.md)
-
 用戶端-伺服器 API 允許用戶端發送消息、控制房間並同步會話歷史記錄。它設計為支持兩種類型的用戶端：不存儲狀態並根據需要從伺服器懶加載數據的輕量級用戶端，以及維護伺服器狀態完整本地持久副本的重量級用戶端。
 
 ## API 標準
@@ -212,7 +210,7 @@ endpoint 有 implement，但用了不正確的 HTTP method: 傳回 405
 
 一些 API 端點可能允許或要求使用沒有交易 ID 的 `POST` 請求。在這是可選的情況下，強烈建議使用 `PUT` 請求。
 
-> [!RATIONALE]
+> [!NOTE]
 > RATIONALE: 在 `v1.7` 之前，交易 ID 的範圍是“用戶端會話”而不是設備。
 
 ## 網頁瀏覽器用戶端
@@ -248,7 +246,7 @@ endpoint 有 implement，但用了不正確的 HTTP method: 傳回 405
 ### Well-known URI
 
 > [!NOTE]
-> 根據本規範中的 [CORS](#web-browser-clients) 部分，託管 `.well-known` JSON 文件的伺服器應提供 CORS 標頭。
+> INFO: 根據本規範中的 [CORS](#web-browser-clients) 部分，託管 `.well-known` JSON 文件的伺服器應提供 CORS 標頭。
 
 `.well-known` 方法使用位於預定位置的 JSON 文件來指定參數值。此方法的流程如下：
 
@@ -277,9 +275,8 @@ endpoint 有 implement，但用了不正確的 HTTP method: 傳回 405
 
 大多數 API 端點要求用戶通過提供先前獲得的憑據（形式為訪問令牌）來識別自己。訪問令牌通常通過 [登錄](#login) 或 [註冊](#account-registration-and-management) 過程獲得。訪問令牌可能會過期；可以使用刷新令牌生成新的訪問令牌。
 
-{{% boxes/note %}}
-本規範不強制要求訪問令牌的特定格式。用戶端應將其視為不透明的字節序列。伺服器可以自由選擇合適的格式。伺服器實現者可能會研究 [macaroons](http://research.google.com/pubs/pub41892.html)。
-{{% /boxes/note %}}
+> [!NOTE]
+> INFO: 本規範不強制要求訪問令牌的特定格式。用戶端應將其視為不透明的字節序列。伺服器可以自由選擇合適的格式。伺服器實現者可能會研究 [macaroons](http://research.google.com/pubs/pub41892.html)。
 
 ### 使用訪問令牌
 
@@ -289,10 +286,8 @@ endpoint 有 implement，但用了不正確的 HTTP method: 傳回 405
 
 主伺服器必須支持這兩種方法。
 
-{{% boxes/note %}}
-{{% changed-in v="1.11" %}}
-將訪問令牌作為查詢字符串參數發送現在已被棄用。
-{{% /boxes/note %}}
+> [!NOTE]
+> INFO: [Changed-in v1.11] 將訪問令牌作為查詢字符串參數發送現在已被棄用。
 
 當憑據需要但缺失或無效時，HTTP 調用將返回狀態 401 和錯誤代碼，分別為 `M_MISSING_TOKEN` 或 `M_UNKNOWN_TOKEN`。請注意，錯誤代碼 `M_UNKNOWN_TOKEN` 可能意味著以下四種情況之一：
 
@@ -315,7 +310,7 @@ endpoint 有 implement，但用了不正確的 HTTP method: 傳回 405
 
 ### 刷新訪問令牌
 
-{{% added-in v="1.3" %}}
+[Added-in v1.3]
 
 訪問令牌可能在一定時間後過期。任何使用過期訪問令牌的 HTTP 調用都會返回錯誤代碼 `M_UNKNOWN_TOKEN`，最好帶有 `soft_logout: true`。當用戶端收到此錯誤並且它有刷新令牌時，應嘗試通過調用 [`/refresh`](#post_matrixclientv3refresh) 刷新訪問令牌。用戶端也可以在任何時候刷新其訪問令牌，即使它尚未過期。如果令牌刷新成功，用戶端應使用新令牌進行未來的請求，並可以使用新令牌重新嘗試先前失敗的請求。當訪問令牌刷新時，可能會返回新的刷新令牌；如果給出了新的刷新令牌，舊的刷新令牌將失效，並且當需要刷新訪問令牌時應使用新的刷新令牌。
 
@@ -454,8 +449,7 @@ Content-Type: application/json
 }
 ```
 
-If the request fails for a reason other than authentication, the server
-returns an error message in the standard format. For example:
+如果請求因身份驗證以外的原因失敗，伺服器會以標準格式傳回錯誤訊息。例如：
 
 ```
 HTTP/1.1 400 Bad request
@@ -473,9 +467,8 @@ Content-Type: application/json
 
 某些身份驗證類型可以通過 Matrix 用戶端之外的方式完成，例如，當用戶點擊電子郵件中的鏈接時，電子郵件確認可以完成。在這種情況下，用戶端重試請求時，提交的身份驗證字典只包含會話鍵。此時的回應與用戶端正常完成身份驗證階段時相同，即請求將要麼完成，要麼請求身份驗證，且根據該身份驗證類型在“completed”數組中的存在或缺失來指示該階段是否完成。
 
-{{% boxes/note %}}
-對使用用戶互動身份驗證的端點的請求，在沒有身份驗證的情況下永遠不會成功。主伺服器可以通過提供只有 `m.login.dummy` 身份驗證類型的階段來允許不需要身份驗證的請求，但它們仍然必須對沒有身份驗證數據的請求給出 401 回應。
-{{% /boxes/note %}}
+> [!NOTE]
+> INFO: 對使用用戶互動身份驗證的端點的請求，在沒有身份驗證的情況下永遠不會成功。主伺服器可以通過提供只有 `m.login.dummy` 身份驗證類型的階段來允許不需要身份驗證的請求，但它們仍然必須對沒有身份驗證數據的請求給出 401 回應。
 
 #### 範例
 
@@ -486,7 +479,7 @@ Content-Type: application/json
     |       Stage 0         |
     | No auth               |
     |  ___________________  |
-    | |_Request_1_________| | <-- Returns "session" key which is used throughout.
+    | |_Request_1_________| | <-- 傳回自始至終使用的「會話」金鑰
     |_______________________|
              |
              |
@@ -674,7 +667,7 @@ Content-Type: application/json
 
 ##### 基於令牌的註冊
 
-{{% added-in v="1.2" %}}
+[Added-in v1.2]
 
 | 類型                          | 描述                                                       |
 |-------------------------------|------------------------------------------------------------|
@@ -704,15 +697,14 @@ Content-Type: application/json
 
 ##### 註冊時的服務條款
 
-{{% added-in v="1.11" %}}
+[Added-in v1.11]
 
 | 類型                     | 描述                                                              |
 |--------------------------|------------------------------------------------------------------|
 | `m.login.terms`          | 身份驗證要求用戶接受一組政策文件。                               |
 
-{{% boxes/note %}}
-`m.login.terms` 身份驗證類型僅在 [`/register`](#post_matrixclientv3register) 端點上有效。
-{{% /boxes/note %}}
+> [!NOTE]
+> INFO: `m.login.terms` 身份驗證類型僅在 [`/register`](#post_matrixclientv3register) 端點上有效。
 
 當主伺服器要求新用戶接受一組政策文件（例如服務條款和隱私政策）時，會使用這種類型的身份驗證。可能會有許多不同類型的文件，所有這些文件都是版本化的，並且以（可能）多種語言呈現。
 
