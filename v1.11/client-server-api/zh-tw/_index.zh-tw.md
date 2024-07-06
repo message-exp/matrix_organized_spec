@@ -212,7 +212,7 @@ endpoint 有 implement，但用了不正確的 HTTP method: 傳回 405
 
 一些 API 端點可能允許或要求使用沒有交易 ID 的 `POST` 請求。在這是可選的情況下，強烈建議使用 `PUT` 請求。
 
-> [!NOTE]
+> [!RATIONALE]
 > RATIONALE: 在 `v1.7` 之前，交易 ID 的範圍是“用戶端會話”而不是設備。
 
 ## 網頁瀏覽器用戶端
