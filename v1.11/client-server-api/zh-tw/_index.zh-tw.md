@@ -1,9 +1,3 @@
----
-title: "Client-Server API"
-weight: 10
-type: docs
----
-
 # Client-Server API
 
 [![en](https://img.shields.io/badge/lang-en-purple.svg)](https://github.com/message-exp/matrix_organized_spec/tree/main/v1.11/client-server-api/en/_index.md)
@@ -198,7 +192,7 @@ endpoint 有 implement，但用了不正確的 HTTP method: 傳回 405
 
 `retry_after_ms` 屬性可以包括，以告訴用戶端他們需要等待多少毫秒才能再次嘗試。該屬性已被棄用，應使用 `Retry-After` 標頭。
 
-{{< changed-in v="1.10" >}}：`retry_after_ms` 屬性已棄用，應使用 `Retry-After` 標頭。
+[Changed-in v="1.10"]：`retry_after_ms` 屬性已棄用，應使用 `Retry-After` 標頭。
 
 ### 交易標識符
 
@@ -218,9 +212,8 @@ endpoint 有 implement，但用了不正確的 HTTP method: 傳回 405
 
 一些 API 端點可能允許或要求使用沒有交易 ID 的 `POST` 請求。在這是可選的情況下，強烈建議使用 `PUT` 請求。
 
-{{% boxes/rationale %}}
-在 `v1.7` 之前，交易 ID 的範圍是“用戶端會話”而不是設備。
-{{% /boxes/rationale %}}
+> [!NOTE]
+> RATIONALE: 在 `v1.7` 之前，交易 ID 的範圍是“用戶端會話”而不是設備。
 
 ## 網頁瀏覽器用戶端
 
@@ -254,9 +247,8 @@ endpoint 有 implement，但用了不正確的 HTTP method: 傳回 405
 
 ### Well-known URI
 
-{{% boxes/note %}}
-根據本規範中的 [CORS](#web-browser-clients) 部分，託管 `.well-known` JSON 文件的伺服器應提供 CORS 標頭。
-{{% /boxes/note %}}
+> [!NOTE]
+> 根據本規範中的 [CORS](#web-browser-clients) 部分，託管 `.well-known` JSON 文件的伺服器應提供 CORS 標頭。
 
 `.well-known` 方法使用位於預定位置的 JSON 文件來指定參數值。此方法的流程如下：
 
@@ -339,42 +331,21 @@ endpoint 有 implement，但用了不正確的 HTTP method: 傳回 405
 
 {{% changed-in v="1.3" %}} 收到此類回應的用戶端可以嘗試 [刷新其訪問令牌](#refreshing-access-tokens)，如果它有可用的刷新令牌。如果它沒有可用的刷新令牌，或者刷新失敗並且帶有 `soft_logout: true`，用戶端可以通過將其已使用的設備 ID 指定給登錄 API 來獲取新的訪問令牌。
 
-### User-Interactive Authentication API
+### 用戶互動身份驗證 API
 
-#### Overview
+#### 概述
 
-Some API endpoints require authentication that interacts with the user.
-The homeserver may provide many different ways of authenticating, such
-as user/password auth, login via a single-sign-on server (SSO), etc.
-This specification does not define how homeservers should authorise
-their users but instead defines the standard interface which
-implementations should follow so that ANY client can log in to ANY
-homeserver.
+某些 API 端點需要與用戶互動的身份驗證。主伺服器可能提供多種身份驗證方式，如用戶名/密碼身份驗證、通過單點登錄服務器 (SSO) 登錄等。此規範不定義主伺服器應如何授權其用戶，而是定義了實現應遵循的標準接口，以便任何用戶端都可以登錄到任何主伺服器。
 
-The process takes the form of one or more 'stages'. At each stage the
-client submits a set of data for a given authentication type and awaits
-a response from the server, which will either be a final success or a
-request to perform an additional stage. This exchange continues until
-the final success.
+該過程以一個或多個“階段”的形式進行。在每個階段，用戶端提交一組給定身份驗證類型的數據並等待伺服器的回應，這可能是最終成功或要求執行另一個階段的請求。這種交換持續進行，直到最終成功。
 
-For each endpoint, a server offers one or more 'flows' that the client
-can use to authenticate itself. Each flow comprises a series of stages,
-as described above. The client is free to choose which flow it follows,
-however the flow's stages must be completed in order. Failing to follow
-the flows in order must result in an HTTP 401 response, as defined
-below. When all stages in a flow are complete, authentication is
-complete and the API call succeeds.
+對於每個端點，伺服器提供一個或多個用戶端可以用來驗證自己的“流程”。每個流程包含一系列階段，如上所述。用戶端可以自由選擇其遵循的流程，但流程的階段必須按順序完成。未按順序遵循流程必須導致 HTTP 401 回應，如下所述。當流程中的所有階段完成時，身份驗證完成，API 調用成功。
 
-#### User-interactive API in the REST API
+#### REST API 中的用戶互動 API
 
-In the REST API described in this specification, authentication works by
-the client and server exchanging JSON dictionaries. The server indicates
-what authentication data it requires via the body of an HTTP 401
-response, and the client submits that authentication data via the `auth`
-request parameter.
+在本規範中描述的 REST API 中，身份驗證通過用戶端和伺服器交換 JSON 字典來工作。伺服器通過 HTTP 401 回應的正文指示所需的身份驗證資料，用戶端通過 `auth` 請求參數提交該身份驗證資料。
 
-A client should first make a request with no `auth` parameter.
-The homeserver returns an HTTP 401 response, with a JSON body, as follows:
+用戶端應首先在沒有 `auth` 參數的情況下發出請求。主伺服器返回一個包含 JSON 正文的 HTTP 401 回應，如下所示：
 
 ```
 HTTP/1.1 401 Unauthorized
@@ -400,27 +371,13 @@ Content-Type: application/json
 }
 ```
 
-In addition to the `flows`, this object contains some extra information:
+除了 `flows`，此對象還包含一些額外資訊：
 
-* `params`: This section contains any information that the client will
-need to know in order to use a given type of authentication. For each
-authentication type presented, that type may be present as a key in this
-dictionary. For example, the public part of an OAuth client ID could be
-given here.
+* `params`：此部分包含用戶端在使用給定類型的身份驗證時需要了解的任何資訊。對於每個呈現的身份驗證類型，該類型可能會作為此字典中的鍵出現。例如，可以在這裡給出 OAuth 客戶端 ID 的公共部分。
 
-* `session`: This is a session identifier that the client must pass back
-to the homeserver, if one is provided, in subsequent attempts to authenticate
-in the same API call.
+* `session`：這是一個會話標識符，如果提供了此標識符，用戶端必須在後續嘗試在同一 API 調用中進行身份驗證時將其傳回主伺服器。
 
-The client then chooses a flow and attempts to complete the first stage.
-It does this by resubmitting the same request with the addition of an
-`auth` key in the object that it submits. This dictionary contains a
-`type` key whose value is the name of the authentication type that the
-client is attempting to complete. It must also contain a `session` key
-with the value of the session key given by the homeserver, if one was
-given. It also contains other keys dependent on the auth type being
-attempted. For example, if the client is attempting to complete auth
-type `example.type.foo`, it might submit something like this:
+然後，用戶端選擇一個流程並嘗試完成第一階段。它通過重新提交相同的請求，並在提交的對象中添加一個 `auth` 鍵來完成這一點。此字典包含一個 `type` 鍵，其值是用戶端嘗試完成的身份驗證類型的名稱。它還必須包含一個 `session` 鍵，其值是主伺服器提供的會話鍵（如果有的話）。此外，它還包含根據正在嘗試的身份驗證類型而定的其他鍵。例如，如果用戶端嘗試完成身份驗證類型 `example.type.foo`，它可能會提交如下所示的內容：
 
 ```
 POST /_matrix/client/v3/endpoint HTTP/1.1
@@ -439,11 +396,7 @@ Content-Type: application/json
 }
 ```
 
-If the homeserver deems the authentication attempt to be successful but
-still requires more stages to be completed, it returns HTTP status 401
-along with the same object as when no authentication was attempted, with
-the addition of the `completed` key which is an array of auth types the
-client has completed successfully:
+如果主伺服器認為身份驗證嘗試成功但仍需完成更多階段，它會返回 HTTP 狀態 401，並返回與未嘗試身份驗證時相同的對象，附加一個 completed 鍵，該鍵是一個用戶端已成功完成的身份驗證類型的數組：
 
 ```
 HTTP/1.1 401 Unauthorized
@@ -470,14 +423,9 @@ Content-Type: application/json
 }
 ```
 
-Individual stages may require more than one request to complete, in
-which case the response will be as if the request was unauthenticated
-with the addition of any other keys as defined by the auth type.
+各個階段可能需要多次請求才能完成，在這種情況下，回應將如同請求未經身份驗證，並附加身份驗證類型定義的任何其他鍵。
 
-If the homeserver decides that an attempt on a stage was unsuccessful,
-but the client may make a second attempt, it returns the same HTTP
-status 401 response as above, with the addition of the standard
-`errcode` and `error` fields describing the error. For example:
+如果主伺服器認為某個階段的嘗試不成功，但用戶端可以再嘗試一次，它將返回與上述相同的 HTTP 狀態 401 回應，並附加描述錯誤的標準 `errcode` 和 `error` 字段。例如：
 
 ```
 HTTP/1.1 401 Unauthorized
@@ -521,32 +469,17 @@ Content-Type: application/json
 }
 ```
 
-If the client has completed all stages of a flow, the homeserver
-performs the API call and returns the result as normal. Completed stages
-cannot be retried by clients, therefore servers must return either a 401
-response with the completed stages, or the result of the API call if all
-stages were completed when a client retries a stage.
+如果用戶端已完成某個流程的所有階段，主伺服器將執行 API 請求並正常返回結果。用戶端不能重試已完成的階段，因此伺服器必須返回包含已完成階段的 401 回應，或者在用戶端重試某個階段時，如果所有階段已完成，則返回 API 請求的結果。
 
-Some authentication types may be completed by means other than through
-the Matrix client, for example, an email confirmation may be completed
-when the user clicks on the link in the email. In this case, the client
-retries the request with an auth dict containing only the session key.
-The response to this will be the same as if the client were attempting
-to complete an auth state normally, i.e. the request will either
-complete or request auth, with the presence or absence of that auth type
-in the 'completed' array indicating whether that stage is complete.
+某些身份驗證類型可以通過 Matrix 用戶端之外的方式完成，例如，當用戶點擊電子郵件中的鏈接時，電子郵件確認可以完成。在這種情況下，用戶端重試請求時，提交的身份驗證字典只包含會話鍵。此時的回應與用戶端正常完成身份驗證階段時相同，即請求將要麼完成，要麼請求身份驗證，且根據該身份驗證類型在“completed”數組中的存在或缺失來指示該階段是否完成。
 
 {{% boxes/note %}}
-A request to an endpoint that uses User-Interactive Authentication never
-succeeds without auth. Homeservers may allow requests that don't require
-auth by offering a stage with only the `m.login.dummy` auth type, but they
-must still give a 401 response to requests with no auth data.
+對使用用戶互動身份驗證的端點的請求，在沒有身份驗證的情況下永遠不會成功。主伺服器可以通過提供只有 `m.login.dummy` 身份驗證類型的階段來允許不需要身份驗證的請求，但它們仍然必須對沒有身份驗證數據的請求給出 401 回應。
 {{% /boxes/note %}}
 
-#### Example
+#### 範例
 
-At a high level, the requests made for an API call completing an auth
-flow with three stages will resemble the following diagram:
+在高層次上，為完成具有三個階段的身份驗證流程的 API 請求所做的請求類似於以下圖表：
 
 ```
     _______________________
@@ -581,13 +514,13 @@ flow with three stages will resemble the following diagram:
     |       Stage 3         |
     | type: "<auth type3>"  |
     |  ___________________  |
-    | |_Request_1_________| | <-- Returns API response
+    | |_Request_1_________| | <-- 回傳 API 回應
     |_______________________|
 ```
 
-#### Authentication types
+#### 身份驗證類型
 
-This specification defines the following auth types:
+本規範定義了以下身份驗證類型：
 -   `m.login.password`
 -   `m.login.recaptcha`
 -   `m.login.sso`
@@ -596,15 +529,13 @@ This specification defines the following auth types:
 -   `m.login.dummy`
 -   `m.login.registration_token`
 
-##### Password-based
+##### 基於密碼的驗證
 
+| 類型               | 描述                                                                    |
+|--------------------|--------------------------------------------------------------------------|
+| `m.login.password` | 用戶端提交標識符和密碼，兩者均以純文本形式發送。 |
 
-| Type               | Description                                                                    |
-|--------------------|--------------------------------------------------------------------------------|
-| `m.login.password` | The client submits an identifier and secret password, both sent in plain-text. |
-
-To use this authentication type, clients should submit an auth dict as
-follows:
+要使用這種類型的身份驗證，用戶端應提交如下所示的身份驗證字典：
 
 ```
 {
@@ -617,11 +548,9 @@ follows:
 }
 ```
 
-where the `identifier` property is a user identifier object, as
-described in [Identifier types](#identifier-types).
+其中 `identifier` 屬性是一個用戶標識符對象，如[標識符類型](#identifier-types)中所述。
 
-For example, to authenticate using the user's Matrix ID, clients would
-submit:
+例如，要使用用戶的 Matrix ID 進行身份驗證，用戶端將提交：
 
 ```json
 {
@@ -635,9 +564,7 @@ submit:
 }
 ```
 
-Alternatively reply using a 3PID bound to the user's account on the
-homeserver using the [`/account/3pid`](#get_matrixclientv3account3pid) API rather than giving the `user`
-explicitly as follows:
+或者，可以使用 [`/account/3pid`](#get_matrixclientv3account3pid) API 綁定到用戶帳戶的 3PID 來回應，而不是明確提供 `user`，如下所示：
 
 ```json
 {
@@ -652,17 +579,15 @@ explicitly as follows:
 }
 ```
 
-In the case that the homeserver does not know about the supplied 3PID,
-the homeserver must respond with 403 Forbidden.
+如果主伺服器不知道所提供的 3PID，則主伺服器必須回應 403 Forbidden。
 
 ##### Google ReCaptcha
 
-| Type                | Description                                          |
-|---------------------|------------------------------------------------------|
-| `m.login.recaptcha` | The user completes a Google ReCaptcha 2.0 challenge. |
+| 類型                | 描述                                          |
+|---------------------|----------------------------------------------|
+| `m.login.recaptcha` | 用戶完成 Google ReCaptcha 2.0 驗證挑戰。 |
 
-To use this authentication type, clients should submit an auth dict as
-follows:
+要使用這種類型的身份驗證，用戶端應提交如下所示的身份驗證字典：
 
 ```json
 {
@@ -672,28 +597,23 @@ follows:
 }
 ```
 
-##### Single Sign-On
+##### 單一登錄
 
-| Type          | Description                                                                          |
+| 類型          | 描述                                                                          |
 |---------------|--------------------------------------------------------------------------------------|
-| `m.login.sso` | Authentication is supported by authorising with an external single sign-on provider. |
+| `m.login.sso` | 通過外部單一登錄提供商授權進行身份驗證。 |
 
-A client wanting to complete authentication using SSO should use the
-[Fallback](#fallback) mechanism. See [SSO during User-Interactive
-Authentication](#sso-during-user-interactive-authentication) for more information.
+希望使用單一登錄完成身份驗證的用戶端應使用[回退](#fallback)機制。更多信息請參見[用戶交互身份驗證中的單一登錄](#sso-during-user-interactive-authentication)。
 
-##### Email-based (identity / homeserver)
+##### 基於電子郵件的驗證 (身份伺服器/主伺服器)
 
-| Type                     | Description                                                                                                      |
-|--------------------------|------------------------------------------------------------------------------------------------------------------|
-| `m.login.email.identity` | Authentication is supported by authorising an email address with an identity server, or homeserver if supported. |
+| 類型                     | 描述                                                                                                      |
+|--------------------------|-----------------------------------------------------------------------------------------------------------|
+| `m.login.email.identity` | 通過身份伺服器或主伺服器（如果支持）授權電子郵件地址進行身份驗證。 |
 
-Prior to submitting this, the client should authenticate with an
-identity server (or homeserver). After authenticating, the session
-information should be submitted to the homeserver.
+在提交此驗證之前，用戶端應先與身份伺服器（或主伺服器）進行身份驗證。身份驗證後，應將會話資訊提交給主伺服器。
 
-To use this authentication type, clients should submit an auth dict as
-follows:
+要使用這種類型的身份驗證，用戶端應提交如下所示的身份驗證字典：
 
 ```json
 {
@@ -708,21 +628,17 @@ follows:
 }
 ```
 
-Note that `id_server` (and therefore `id_access_token`) is optional if
-the `/requestToken` request did not include them.
+請注意，如果 `/requestToken` 請求中未包含 `id_server`（因此也不包含 `id_access_token`），則 `id_server`（因此也不包含 `id_access_token`）是可選的。
 
-##### Phone number/MSISDN-based (identity / homeserver)
+##### 基於電話號碼/MSISDN的驗證 (身份伺服器/主伺服器)
 
-| Type             | Description                                                                                                    |
-|------------------|----------------------------------------------------------------------------------------------------------------|
-| `m.login.msisdn` | Authentication is supported by authorising a phone number with an identity server, or homeserver if supported. |
+| 類型             | 描述                                                                                                    |
+|------------------|---------------------------------------------------------------------------------------------------------|
+| `m.login.msisdn` | 通過身份伺服器或主伺服器（如果支持）授權電話號碼進行身份驗證。 |
 
-Prior to submitting this, the client should authenticate with an
-identity server (or homeserver). After authenticating, the session
-information should be submitted to the homeserver.
+在提交此驗證之前，用戶端應先與身份伺服器（或主伺服器）進行身份驗證。身份驗證後，應將會話資訊提交給主伺服器。
 
-To use this authentication type, clients should submit an auth dict as
-follows:
+要使用這種類型的身份驗證，用戶端應提交如下所示的身份驗證字典：
 
 ```json
 {
@@ -737,27 +653,17 @@ follows:
 }
 ```
 
-Note that `id_server` (and therefore `id_access_token`) is optional if
-the `/requestToken` request did not include them.
+請注意，如果 `/requestToken` 請求中未包含 `id_server`（因此也不包含 `id_access_token`），則 `id_server`（因此也不包含 `id_access_token`）是可選的。
 
-##### Dummy Auth
+##### 假身份驗證
 
-| Type             | Description                                                            |
-|------------------|------------------------------------------------------------------------|
-| `m.login.dummy`  | Dummy authentication always succeeds and requires no extra parameters. |
+| 類型             | 描述                                                            |
+|------------------|----------------------------------------------------------------|
+| `m.login.dummy`  | 假身份驗證總是成功且不需要額外的參數。 |
 
-The purpose of dummy authentication is to allow servers to not require any form of
-User-Interactive Authentication to perform a request. It can also be
-used to differentiate flows where otherwise one flow would be a subset
-of another flow. e.g. if a server offers flows `m.login.recaptcha` and
-`m.login.recaptcha, m.login.email.identity` and the client completes the
-recaptcha stage first, the auth would succeed with the former flow, even
-if the client was intending to then complete the email auth stage. A
-server can instead send flows `m.login.recaptcha, m.login.dummy` and
-`m.login.recaptcha, m.login.email.identity` to fix the ambiguity.
+假身份驗證的目的是允許伺服器不需要任何形式的用戶交互身份驗證即可執行請求。它還可以用於區分流，其中一個流可能是另一個流的子集。例如，如果伺服器提供 `m.login.recaptcha` 和 `m.login.recaptcha, m.login.email.identity` 流，並且用戶端首先完成了 recaptcha 階段，則身份驗證將成功通過前一個流，即使用戶端打算隨後完成電子郵件驗證階段。伺服器可以改為發送 `m.login.recaptcha, m.login.dummy` 和 `m.login.recaptcha, m.login.email.identity` 流來解決這種歧義。
 
-To use this authentication type, clients should submit an auth dict with
-just the type and session, if provided:
+要使用這種類型的身份驗證，用戶端應提交僅包含類型和會話（如果提供）的身份驗證字典：
 
 ```json
 {
@@ -766,34 +672,23 @@ just the type and session, if provided:
 }
 ```
 
-##### Token-authenticated registration
+##### 基於令牌的註冊
 
 {{% added-in v="1.2" %}}
 
-| Type                          | Description                                                       |
-|-------------------------------|-------------------------------------------------------------------|
-| `m.login.registration_token`  | Registers an account with a pre-shared token for authentication   |
+| 類型                          | 描述                                                       |
+|-------------------------------|------------------------------------------------------------|
+| `m.login.registration_token`  | 使用預共享的令牌進行身份驗證來註冊帳戶。 |
 
 {{% boxes/note %}}
-The `m.login.registration_token` authentication type is only valid on the
-[`/register`](#post_matrixclientv3register) endpoint.
+`m.login.registration_token` 身份驗證類型僅在 [`/register`](#post_matrixclientv3register) 端點上有效。
 {{% /boxes/note %}}
 
-This authentication type provides homeservers the ability to allow registrations
-to a limited set of people instead of either offering completely open registrations
-or completely closed registration (where the homeserver administrators create
-and distribute accounts).
+這種類型的身份驗證使主伺服器能夠允許有限的一組人註冊帳戶，而不是提供完全開放的註冊或完全關閉的註冊（由主伺服器管理員創建並分發帳戶）。
 
-The token required for this authentication type is shared out of band from
-Matrix and is an opaque string using the [Opaque Identifier
-Grammar](/appendices#opaque-identifiers), with maximum length of 64
-characters. The server can keep any number of tokens for any length of
-time/validity. Such cases might be a token limited to 100 uses or for the next
-2 hours - after the tokens expire, they can no longer be used to create
-accounts.
+此身份驗證類型所需的令牌在 Matrix 外部共享，並使用[不透明標識符語法](/appendices#opaque-identifiers)作為不透明字符串，最大長度為64個字符。伺服器可以保留任意數量的令牌，且有效時間不限。這種情況可能是令牌限制為100次使用或僅在接下來的2小時內有效——令牌過期後，無法再用於創建帳戶。
 
-To use this authentication type, clients should submit an auth dict with just
-the type, token, and session:
+要使用這種類型的身份驗證，用戶端應提交僅包含類型、令牌和會話的身份驗證字典：
 
 ```json
 {
@@ -803,43 +698,29 @@ the type, token, and session:
 }
 ```
 
-To determine if a token is valid before attempting to use it, the client can
-use the `/validity` API defined below. The API doesn't guarantee that a token
-will be valid when used, but does avoid cases where the user finds out late
-in the registration process that their token has expired.
+為了在使用令牌之前確定其是否有效，用戶端可以使用下面定義的 `/validity` API。該 API 無法保證令牌在使用時仍然有效，但可以避免用戶在註冊過程後期發現令牌已過期的情況。
 
 {{% http-api spec="client-server" api="registration_tokens" %}}
 
-##### Terms of service at registration
+##### 註冊時的服務條款
 
 {{% added-in v="1.11" %}}
 
-| Type                     | Description                                                              |
-|--------------------------|--------------------------------------------------------------------------|
-| `m.login.terms`          | Authentication requires the user to accept a set of policy documents. |
+| 類型                     | 描述                                                              |
+|--------------------------|------------------------------------------------------------------|
+| `m.login.terms`          | 身份驗證要求用戶接受一組政策文件。                               |
 
 {{% boxes/note %}}
-The `m.login.terms` authentication type is only valid on the
-[`/register`](#post_matrixclientv3register) endpoint.
+`m.login.terms` 身份驗證類型僅在 [`/register`](#post_matrixclientv3register) 端點上有效。
 {{% /boxes/note %}}
 
-This authentication type is used when the homeserver requires new users to
-accept a given set of policy documents, such as a terms of service and a privacy
-policy. There may be many different types of documents, all of which are
-versioned and presented in (potentially) multiple languages.
+當主伺服器要求新用戶接受一組政策文件（例如服務條款和隱私政策）時，會使用這種類型的身份驗證。可能會有許多不同類型的文件，所有這些文件都是版本化的，並且以（可能）多種語言呈現。
 
-When the server requires the user to accept some terms, it does so by returning
-a 401 response to the `/register` request, where the response body includes
-`m.login.terms` in the `flows` list, and the `m.login.terms` property in the
-`params` object has the structure [shown below](#definition-mloginterms-params).
+當伺服器要求用戶接受一些條款時，會通過返回401回應來回應 `/register` 請求，其中回應主體包括 `flows` 列表中的 `m.login.terms`，以及 `params` 對象中的 `m.login.terms` 屬性，其結構如下所示 [定義-mloginterms-params](#definition-mloginterms-params)。
 
-If a client encounters an invalid parameter, registration should stop with an
-error presented to the user.
+如果用戶端遇到無效參數，註冊應停止並向用戶顯示錯誤。
 
-The client should present the user with a checkbox to accept each policy,
-including a link to the provided URL. Once the user has done so, the client
-submits an `auth` dict with just the `type` and `session`, as follows, to
-indicate that all of the policies have been accepted:
+用戶端應向用戶展示一個復選框以接受每個政策，包括提供的 URL 鏈接。一旦用戶這樣做，用戶端應提交一個僅包含 `type` 和 `session` 的 `auth` 字典，如下所示，以表示所有政策都已被接受：
 
 ```json
 {
@@ -848,13 +729,11 @@ indicate that all of the policies have been accepted:
 }
 ```
 
-The server is expected to track which document versions it presented to the
-user during registration, if applicable.
+伺服器應追蹤在註冊期間向用戶呈現的文件版本（如果適用）。
 
+**示例**
 
-**Example**
-
-1. A client might submit a registration request as follows:
+1. 用戶端可能會提交如下所示的註冊請求：
 
    ```
    POST /_matrix/client/v3/register
@@ -866,8 +745,7 @@ user during registration, if applicable.
    }
    ```
 
-2. The server requires the user to accept some terms of service before
-   registration, so returns the following response:
+2. 伺服器要求用戶在註冊前接受一些服務條款，因此返回以下回應：
 
    ```
    HTTP/1.1 401 Unauthorized
@@ -899,11 +777,9 @@ user during registration, if applicable.
    }
    ```
 
-3. The client presents the list of documents to the user, inviting them to
-   accept the polices.
+3. 用戶端向用戶展示文件列表，邀請他們接受這些政策。
 
-4. The client repeats the registration request, confirming that the user has
-   accepted the documents:
+4. 用戶端重複註冊請求，確認用戶已接受這些文件：
    ```
    POST /_matrix/client/v3/register
    ```
@@ -918,7 +794,7 @@ user during registration, if applicable.
    }
    ```
 
-5. All authentication steps have now completed, so the request is successful:
+5. 所有身份驗證步驟均已完成，請求成功：
    ```
    HTTP/1.1 200 OK
    Content-Type: application/json

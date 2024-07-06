@@ -1,9 +1,3 @@
----
-title: "Client-Server API"
-weight: 10
-type: docs
----
-
 # Client-Server API
 
 [![zh-tw](https://img.shields.io/badge/lang-zh--tw-blue.svg)](https://github.com/message-exp/matrix_organized_spec/tree/main/v1.11/client-server-api/zh-tw/_index.zh-tw.md)

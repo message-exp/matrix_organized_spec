@@ -10,13 +10,13 @@ Matrix 上的所有通信都發生在房間內。有時希望為用戶提供直�
 
 {{% event event="m.direct" %}}
 
-#### 客戶端行為
+#### 用戶端行為
 
-要與另一個用戶開始私人聊天，邀請用戶的客戶端應在 [`/createRoom`](/client-server-api/#post_matrixclientv3createroom) 中設置 `is_direct` 標誌。當用戶遵循的流程是其意圖直接與另一個人交談，而不是將該人帶入共享房間時，客戶端應該這樣做。例如，點擊某人的個人資料圖片旁邊的「開始聊天」會暗示應設置 `is_direct` 標誌。
+要與另一個用戶開始私人聊天，邀請用戶的用戶端應在 [`/createRoom`](/client-server-api/#post_matrixclientv3createroom) 中設置 `is_direct` 標誌。當用戶遵循的流程是其意圖直接與另一個人交談，而不是將該人帶入共享房間時，用戶端應該這樣做。例如，點擊某人的個人資料圖片旁邊的「開始聊天」會暗示應設置 `is_direct` 標誌。
 
-被邀請者的客戶端可以使用 [m.room.member](#mroommember) 事件中的 `is_direct` 標誌自動將房間標記為私人聊天，但這不是必需的：例如，它可能會提示用戶，或完全忽略該標誌。
+被邀請者的用戶端可以使用 [m.room.member](#mroommember) 事件中的 `is_direct` 標誌自動將房間標記為私人聊天，但這不是必需的：例如，它可能會提示用戶，或完全忽略該標誌。
 
-邀請客戶端和被邀請者的客戶端都應通過使用 [`/user/<user_id>/account_data/<type>`](/client-server-api/#put_matrixclientv3useruseridaccount_datatype) 存儲 `m.direct` 事件來記錄房間是私人聊天的事實。
+邀請用戶端和被邀請者的用戶端都應通過使用 [`/user/<user_id>/account_data/<type>`](/client-server-api/#put_matrixclientv3useruseridaccount_datatype) 存儲 `m.direct` 事件來記錄房間是私人聊天的事實。
 
 #### 伺服器行為
 
