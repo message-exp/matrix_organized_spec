@@ -29,8 +29,7 @@ Matrix 中用戶端-伺服器通訊的強制基線(mandatory baseline)是通過 
 
 ### 標準錯誤回應
 
-Any errors which occur at the Matrix API level MUST return a "standard
-error response". This is a JSON object which looks like:
+在 Matrix API 層級發生的任何錯誤都必須傳回「標準錯誤回應」。這是一個 JSON 對象，如下所示：
 
 ```json
 {
@@ -39,32 +38,17 @@ error response". This is a JSON object which looks like:
 }
 ```
 
-The `error` string will be a human-readable error message, usually a
-sentence explaining what went wrong.
+`error` 字串將是人類可讀的錯誤訊息，通常是解釋出錯原因的句子。
 
-The `errcode` string will be a unique string which can be used to handle an
-error message e.g.  `M_FORBIDDEN`. Error codes should have their namespace
-first in ALL CAPS, followed by a single `_`. For example, if there was a custom
-namespace `com.mydomain.here`, and a `FORBIDDEN` code, the error code should
-look like `COM.MYDOMAIN.HERE_FORBIDDEN`. Error codes defined by this
-specification should start with `M_`.
+`errcode` 字串將是一個唯一的字串，可用來處理錯誤訊息，例如 `M_FORBIDDEN`。錯誤代碼的命名空間應先全部大寫，後面接著一個 `_`。例如，如果有自訂命名空間 `com.mydomain.here` 和 `FORBIDDEN` 程式碼，則錯誤代碼應類似於 `COM.MYDOMAIN.HERE_FORBIDDEN` 。本規範定義的錯誤代碼應以 `M_` 開頭。
 
-Some `errcode`s define additional keys which should be present in the error
-response object, but the keys `error` and `errcode` MUST always be present.
+一些 `errcode` 定義了應出現在錯誤回應物件中的附加鍵，但鍵 `error` 和 `errcode` 必須始終存在。
 
-Errors are generally best expressed by their error code rather than the
-HTTP status code returned. When encountering the error code `M_UNKNOWN`,
-clients should prefer the HTTP status code as a more reliable reference
-for what the issue was. For example, if the client receives an error
-code of `M_NOT_FOUND` but the request gave a 400 Bad Request status
-code, the client should treat the error as if the resource was not
-found. However, if the client were to receive an error code of
-`M_UNKNOWN` with a 400 Bad Request, the client should assume that the
-request being made was invalid.
+錯誤通常最好透過其錯誤代碼而不是傳回的 HTTP 狀態代碼來表達。當遇到錯誤代碼 `M_UNKNOWN` 時，客戶端應該偏好 HTTP 狀態代碼作為問題所在的更可靠參考。例如，如果用戶端收到 `M_NOT_FOUND` 錯誤代碼，但請求給出了 400 Bad Request 狀態碼，則用戶端應將該錯誤視為未找到資源。但是，如果用戶端收到帶有 400 Bad Request 的錯誤代碼 `M_UNKNOWN`，則用戶端應假定發出的請求無效。
 
 #### 常見錯誤代碼
 
-These error codes can be returned by any API endpoint:
+這些錯誤代碼可以由任何 API 端點傳回：
 
 `M_FORBIDDEN`
 禁止存取, e.g. joining a room without permission, failed login.
@@ -72,15 +56,13 @@ These error codes can be returned by any API endpoint:
 `M_UNKNOWN_TOKEN`
 The access or refresh token specified was not recognised.
 
-An additional response parameter, `soft_logout`, might be present on the
-response for 401 HTTP status codes. See [the soft logout
-section](#soft-logout) for more information.
+401 HTTP 狀態代碼的回應中可能存在附加回應參數 `soft_logout`。請參閱[軟登出章節](#soft-logout) 以了解更多資訊。
 
 `M_MISSING_TOKEN`
 沒給 access token
 
 `M_BAD_JSON`
-格式錯誤, e.g. missing required keys, invalid values for keys.
+格式錯誤, e.g. 缺少必需的鍵、鍵的值無效
 
 `M_NOT_JSON`
 沒給有效的 JSON
@@ -911,7 +893,7 @@ This specification defines the following identifier types:
 -   `m.id.thirdparty`
 -   `m.id.phone`
 
-##### Matrix User ID
+##### Matrix 使用者 ID
 
 | Type        | Description                                |
 |-------------|--------------------------------------------|
@@ -928,7 +910,7 @@ ID.
 }
 ```
 
-##### Third-party ID
+##### 第三方 ID
 
 | Type              | Description                                                               |
 |-------------------|---------------------------------------------------------------------------|
@@ -948,7 +930,7 @@ ID media.
 }
 ```
 
-##### Phone number
+##### 電話號碼
 
 | Type         | Description                               |
 |--------------|-------------------------------------------|
@@ -974,7 +956,7 @@ The `country` is the two-letter uppercase ISO-3166-1 alpha-2 country
 code that the number in `phone` should be parsed as if it were dialled
 from.
 
-### Login
+### 登入
 
 A client can obtain access tokens using the `/login` API.
 
