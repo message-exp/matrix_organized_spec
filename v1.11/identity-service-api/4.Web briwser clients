@@ -1,0 +1,14 @@
+## Web 瀏覽器客戶端
+
+現實中，一些客戶端會被編寫為在網頁瀏覽器或類似環境中運行。在這些情況下，身份服務器應該對預檢請求做出響應，並在所有請求上提供跨域資源共享（CORS）標頭。
+
+當客戶端使用預檢（OPTIONS）請求訪問服務器時，服務器應該對該路由返回 CORS 標頭。服務器在所有請求中應返回的推薦 CORS 標頭如下：
+
+
+
+```
+Access-Control-Allow-Origin：指定哪些源（origin）可以訪問資源。例如，Access-Control-Allow-Origin: * 表示所有源都允許訪問。
+Access-Control-Allow-Methods：指定允許的 HTTP 方法，如 GET、POST、PUT、DELETE、OPTIONS 等。
+Access-Control-Allow-Headers：指定允許的自訂請求標頭，例如 Origin、X-Requested-With、Content-Type 等。
+
+```
