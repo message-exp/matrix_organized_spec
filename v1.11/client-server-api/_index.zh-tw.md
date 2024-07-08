@@ -1,35 +1,24 @@
 # Client-Server API
 
-用戶端-伺服器 API 允許用戶端發送消息、控制房間並同步會話歷史記錄。它設計為支持兩種類型的用戶端：不存儲狀態並根據需要從伺服器懶加載數據的輕量級用戶端，以及維護伺服器狀態完整本地持久副本的重量級用戶端。
+## API Standard
 
-## API 標準
+- HTTP APIs
+- JSON
+- UTF-8
+- 使用不公開的 `access_token` 進行驗證
+- 所有 POST 及 PUT 的 endpoint，客戶端都必須提供包含（可能為空）JSON 的請求（request），且標頭（header）應註明 `Content-Type: application/json`（非必須），但以下 endpoint 除外：
+  - [`POST /_matrix/media/v3/upload`](https://spec.matrix.org/v1.11/client-server-api/#post_matrixmediav3upload)  
+    [`PUT /_matrix/media/v3/upload/{serverName}/{mediaId}`](https://spec.matrix.org/v1.11/client-server-api/#put_matrixmediav3uploadservernamemediaid)  
+    以上傳的媒體作為 request body
+  - [`POST /_matrix/client/v3/logout`](https://spec.matrix.org/v1.11/client-server-api/#post_matrixclientv3logout)  
+    [`POST /_matrix/client/v3/logout/all`](https://spec.matrix.org/v1.11/client-server-api/#post_matrixclientv3logoutall)  
+    採用空 request body
+- [Conventions for Matrix APIs](https://spec.matrix.org/v1.11/appendices#conventions-for-matrix-apis)
+- [Web Browser Clients](https://spec.matrix.org/v1.11/client-server-api/#web-browser-clients)
 
-Matrix 中用戶端-伺服器通訊的強制基線(mandatory baseline)是通過 HTTP API 交換 JSON 對象。未來可能會指定更高效的傳輸方式作為可選擴展。
+## 標準錯誤回應
 
-推薦使用 HTTPS 進行通訊。不建議在測試環境之外使用純 HTTP。
-
-用戶端通過不透明的 `access_token` 字符串進行身份驗證（詳見 [用戶端身份驗證](#client-authentication)）。
-
-所有 `POST` 和 `PUT` 端點，除以下列出的端點外，要求用戶端提供包含（可能為空的）JSON 對象的請求體。用戶端應為所有帶有 JSON 主體的請求提供 `Content-Type` 標頭為 `application/json`，但這不是必需的。
-
-例外情況包括：
-
-- [`POST /_matrix/media/v3/upload`](#post_matrixmediav3upload) 和 
-  [`PUT /_matrix/media/v3/upload/{serverName}/{mediaId}`](#put_matrixmediav3uploadservernamemediaid)，
-  兩者均將上傳的媒體作為請求體。
-- [`POST /_matrix/client/v3/logout`](#post_matrixclientv3logout) 和
-  [`POST /_matrix/client/v3/logout/all`](#post_matrixclientv3logoutall)，
-  這些端點的請求體為空。
-
-同樣，所有端點要求伺服器返回一個 JSON 對象，除了 [內容庫模塊](#content-repository) 中媒體下載端點的 200 回應外。伺服器必須為所有 JSON 回應包含 `application/json` 的 `Content-Type` 標頭。
-
-所有 JSON 數據，不論是請求還是回應，必須使用 UTF-8 編碼。
-
-另請參見附錄中的 [Matrix API 的約定](/appendices#conventions-for-matrix-apis)，所有 Matrix API 都應遵循這些約定，及下文的 [Web 瀏覽器用戶端](#web-browser-clients) 以了解伺服器回應的附加要求。
-
-### 標準錯誤回應
-
-在 Matrix API 層級發生的任何錯誤都必須傳回「標準錯誤回應」。這是一個 JSON 對象，如下所示：
+### 格式
 
 ```json
 {
@@ -38,141 +27,110 @@ Matrix 中用戶端-伺服器通訊的強制基線(mandatory baseline)是通過 
 }
 ```
 
-`error` 字串將是人類可讀的錯誤訊息，通常是解釋出錯原因的句子。
+**error**: 人類可讀的訊息，通常是解釋出錯原因的句子
 
-`errcode` 字串將是一個唯一的字串，可用來處理錯誤訊息，例如 `M_FORBIDDEN`。錯誤代碼的命名空間應先全部大寫，後面接著一個 `_`。例如，如果有自訂命名空間 `com.mydomain.here` 和 `FORBIDDEN` 程式碼，則錯誤代碼應類似於 `COM.MYDOMAIN.HERE_FORBIDDEN` 。本規範定義的錯誤代碼應以 `M_` 開頭。
+**errcode**: 
+- 唯一字串（unique string）
+- 大寫 namespace 加底線 `_`  
+  namespace 可自訂  
+  Matrix 規範的 namespace 以 `M_` 開頭  
+  _例：`COM.MYDOMAIN.HERE_FORBIDDEN`_
+  
+其他 additional key: 視 `errcode` 規範而定
 
-一些 `errcode` 定義了應出現在錯誤回應物件中的附加鍵，但鍵 `error` 和 `errcode` 必須始終存在。
+### 使用
 
-錯誤通常最好透過其錯誤代碼而不是傳回的 HTTP 狀態代碼來表達。當遇到錯誤代碼 `M_UNKNOWN` 時，客戶端應該偏好 HTTP 狀態代碼作為問題所在的更可靠參考。例如，如果用戶端收到 `M_NOT_FOUND` 錯誤代碼，但請求給出了 400 Bad Request 狀態碼，則用戶端應將該錯誤視為未找到資源。但是，如果用戶端收到帶有 400 Bad Request 的錯誤代碼 `M_UNKNOWN`，則用戶端應假定發出的請求無效。
+- 有 error code -> 看 error code
+- `M_UNKNOWN` -> 看 HTTP 狀態碼
 
-#### 常見錯誤代碼
+### 常見錯誤代碼
 
-這些錯誤代碼可以由任何 API 端點傳回：
+`M_FORBIDDEN` 禁止存取
 
-`M_FORBIDDEN`
-禁止存取, e.g. joining a room without permission, failed login.
+`M_UNKNOWN_TOKEN` 無法辨識指定的 存取或刷新令牌  
+401 HTTP 狀態碼（Unauthorized）：可能有附加回應參數（additional response parameter）`soft_logout`，見 [soft logout](https://spec.matrix.org/v1.11/client-server-api/#soft-logout)
 
-`M_UNKNOWN_TOKEN`
-The access or refresh token specified was not recognised.
+`M_MISSING_TOKEN` 沒給 access token
 
-401 HTTP 狀態代碼的回應中可能存在附加回應參數 `soft_logout`。請參閱[軟登出章節](#soft-logout) 以了解更多資訊。
+`M_BAD_JSON` 格式錯誤
 
-`M_MISSING_TOKEN`
-沒給 access token
+`M_NOT_JSON` 沒給有效的 JSON
 
-`M_BAD_JSON`
-格式錯誤, e.g. 缺少必需的鍵、鍵的值無效
+`M_NOT_FOUND` 找不到
 
-`M_NOT_JSON`
-沒給有效的 JSON
+`M_LIMIT_EXCEEDED` 傳太快了，慢一點
 
-`M_NOT_FOUND`
-資源找不到
+`M_UNRECOGNIZED` 伺服器無法理解該請求  
+endpoint 沒被 implement: 傳回 404 (HTTP 狀態碼)  
+endpoint 有 implement，但用了不正確的 HTTP method: 傳回 405（Method Not Allowed）
 
-`M_LIMIT_EXCEEDED`
-傳太快了，慢一點 Wait a while then try again. See [Rate limiting](#rate-limiting).
+`M_UNKNOWN` 發生未知錯誤
 
-`M_UNRECOGNIZED`
-伺服器無法理解該請求。  
-endpoint 沒被 implement: 傳回 404 (HTTP status code)  
-endpoint 有 implement，但用了不正確的 HTTP method: 傳回 405
+### 其他錯誤代碼
 
-`M_UNKNOWN`
-發生未知錯誤
+`M_UNAUTHORIZED` 請求未正確授權，通常是登入失敗
 
-#### 其他錯誤代碼
+`M_USER_DEACTIVATED` User ID 已停用。通常用於 prove authentication 的端點，例如 `/login`
 
-以下錯誤代碼特定於某些端點。
+`M_USER_IN_USE` 欲註冊的 User ID 已經被使用
 
-<!-- TODO: 將它們移動到回傳它們的端點 -->
+`M_INVALID_USERNAME` 嘗試註冊無效的 User ID
 
-`M_UNAUTHORIZED`
-請求未正確授權。通常由於登錄失敗。
+`M_ROOM_IN_USE` 提供給 `createRoom` API 的房間別名已被使用
 
-`M_USER_DEACTIVATED`
-與請求相關聯的用戶 ID 已被停用。通常用於驗證的端點，例如 `/login`。
+`M_INVALID_ROOM_STATE` 提供給 `createRoom` API 的初始狀態無效
 
-`M_USER_IN_USE`
-嘗試註冊已被佔用的用戶 ID 時遇到。
+`M_THREEPID_IN_USE` 給予 API 的第三方 pid 無法使用，因為相同的第三方 pid 已在使用中
 
-`M_INVALID_USERNAME`
-嘗試註冊無效的用戶 ID 時遇到。
+`M_THREEPID_NOT_FOUND` 由於找不到與第三方 pid 相符的記錄而無法使用給予 API 的第三方 pid 
 
-`M_ROOM_IN_USE`
-在 `createRoom` API 中給定的房間別名已被佔用時發送。
+`M_THREEPID_AUTH_FAILED` 無法對第三方 identifier 進行身份驗證
 
-`M_INVALID_ROOM_STATE`
-在 `createRoom` API 中給定的初始狀態無效時發送。
-
-`M_THREEPID_IN_USE`
-當三方標識在 API 中給定時，由於相同的三方標識已被使用，無法使用時發送。
-
-`M_THREEPID_NOT_FOUND`
-當 API 中給定的三方標識無法使用，因為找不到匹配的三方標識記錄時發送。
-
-`M_THREEPID_AUTH_FAILED`
-無法對三方標識進行身份驗證。
-
-`M_THREEPID_DENIED`
-服務器不允許此三方標識。這可能發生在服務器僅允許來自特定域的電子郵件地址等情況下。
+`M_THREEPID_DENIED` 伺服器不允許此第三方 identifier。這可能發生在伺服器僅允許來自特定網域的電子郵件地址等情況
 
 `M_SERVER_NOT_TRUSTED`
-用戶端的請求使用了此服務器不信任的第三方服務器，例如身份服務器。
+用戶端的請求使用了此伺服器不信任的第三方伺服器，例如不信任的 identity 伺服器
 
-`M_UNSUPPORTED_ROOM_VERSION`
-用戶端請求創建房間時使用了服務器不支持的房間版本。
+`M_UNSUPPORTED_ROOM_VERSION` 用戶端請求建立 room 時使用了伺服器不支援的 room 版本
 
-`M_INCOMPATIBLE_ROOM_VERSION`
-用戶端嘗試加入服務器不支持版本的房間。檢查錯誤回應的 `room_version` 屬性以了解房間的版本。
+`M_INCOMPATIBLE_ROOM_VERSION` 用戶端嘗試加入伺服器不支援版本的 room。請檢查錯誤回應的 `room_version` 屬性以了解 room 的版本
 
 `M_BAD_STATE`
-請求的狀態變更無法執行，例如嘗試取消禁止未被禁止的用戶。
+無法執行要求的狀態更改，例如嘗試取消禁止未被禁止的用戶
 
-`M_GUEST_ACCESS_FORBIDDEN`
-房間或資源不允許訪客訪問。
+`M_GUEST_ACCESS_FORBIDDEN` room 或資源不允許訪客訪問
 
-`M_CAPTCHA_NEEDED`
-需要完成請求的驗證碼。
+`M_CAPTCHA_NEEDED` 需要 Captcha 以完成請求
 
-`M_CAPTCHA_INVALID`
-提供的驗證碼與預期不匹配。
+`M_CAPTCHA_INVALID` 提供的 Captcha 與預期不符
 
-`M_MISSING_PARAM`
-請求中缺少必需的參數。
+`M_MISSING_PARAM` 請求中缺少必需的參數
 
-`M_INVALID_PARAM`
-指定的參數具有錯誤的值。例如，服務器預期為整數但收到的是字符串。
+`M_INVALID_PARAM` 特定參數的值 錯誤。例如，伺服器預期為整數但收到字串
 
-`M_TOO_LARGE`
-請求或實體太大。
+`M_TOO_LARGE` 請求或實體太大
 
-`M_EXCLUSIVE`
-請求的資源被應用服務保留，或者請求的應用服務尚未創建該資源。
+`M_EXCLUSIVE` 請求的資源被應用服務（application service）保留，或者請求的應用服務尚未創建該資源
 
-`M_RESOURCE_LIMIT_EXCEEDED`
-由於主伺服器達到了對其施加的資源限制，無法完成請求。例如，如果主伺服器位於共享託管環境中，則可能會在使用過多內存或磁盤空間時達到資源限制。錯誤必須具有 `admin_contact` 字段，以便接收錯誤的用戶能夠聯繫。通常，該錯誤將出現在嘗試修改狀態的路徑上（例如：發送消息、帳戶數據等），而不是僅讀取狀態的路徑上（例如：`/sync`，獲取帳戶數據等）。
+`M_RESOURCE_LIMIT_EXCEEDED` 由於主伺服器達到了對其施加的資源限制，無法完成請求。例如，如果主伺服器位於共享託管環境中，則可能會在使用過多記憶體或磁碟空間時達到資源限制。  
+錯誤必須具有 `admin_contact` 欄位，以便接收錯誤的用戶能夠進行聯繫。  
+此錯誤通常出現在嘗試修改狀態的路由（route）（例如：發送訊息、帳戶資料等），而不是僅讀取狀態的路由（例如：`/sync`，取得帳戶資料等）
 
-`M_CANNOT_LEAVE_SERVER_NOTICE_ROOM`
-用戶無法拒絕加入服務器通知房間的邀請。有關更多資訊，請參見 [服務器通知](#server-notices) 模塊。
+`M_CANNOT_LEAVE_SERVER_NOTICE_ROOM` 用戶無法拒絕加入伺服器通知 room （server notices room）的邀請。見 [伺服器通知](#server-notices)
 
-#### 速率限制
+### 速率限制
 
-主伺服器應實施速率限制，以減少被超載的風險。如果請求由於速率限制而被拒絕，應返回以下形式的標準錯誤回應：
-
-```json
-{
-  "errcode": "M_LIMIT_EXCEEDED",
-  "error": "string",
-  "retry_after_ms": integer (optional, deprecated)
-}
-```
-
-對於任何返回 429 狀態碼的回應，主伺服器應包含 [`Retry-After`](https://www.rfc-editor.org/rfc/rfc9110#field.retry-after) 標頭。
-
-`retry_after_ms` 屬性可以包括，以告訴用戶端他們需要等待多少毫秒才能再次嘗試。該屬性已被棄用，應使用 `Retry-After` 標頭。
-
-[Changed-in v="1.10"]：`retry_after_ms` 屬性已棄用，應使用 `Retry-After` 標頭。
+- 主伺服器**應該**實作速率限制機制以降低過載的風險
+- 超過速率限制錯誤訊息：  
+  ```json
+  {
+    "errcode": "M_LIMIT_EXCEEDED",
+    "error": "string",
+    "retry_after_ms": integer (optional, deprecated)
+  }
+  ```
+- 主伺服器**應該**於 429 狀態碼的任何回應中包含 `Retry-After` 標頭
+- _`retry_after_ms` 已棄用（v1.10）_
 
 ### 交易標識符
 
@@ -199,7 +157,7 @@ endpoint 有 implement，但用了不正確的 HTTP method: 傳回 405
 
 在現實中，可以預期一些用戶端將被編寫為在網頁瀏覽器或類似環境中運行。在這些情況下，主伺服器應回應預檢請求，並在所有請求中提供跨來源資源共享（CORS）標頭。
 
-伺服器必須預期用戶端將使用 `OPTIONS` 請求接近它們，允許用戶端發現 CORS 標頭。本規範中的所有端點都支持 `OPTIONS` 方法，然而當使用 `OPTIONS` 請求接近時，伺服器不得執行為端點定義的任何邏輯。
+伺服器必須預期用戶端將使用 `OPTIONS` 請求接近它們，允許用戶端探索 CORS 標頭。本規範中的所有端點都支持 `OPTIONS` 方法，然而當使用 `OPTIONS` 請求接近時，伺服器不得執行為端點定義的任何邏輯。
 
 當用戶端使用請求接近伺服器時，伺服器應回應該路由的 CORS 標頭。推薦伺服器在所有請求中返回的 CORS 標頭為：
 
@@ -207,9 +165,9 @@ endpoint 有 implement，但用了不正確的 HTTP method: 傳回 405
     Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS
     Access-Control-Allow-Headers: X-Requested-With, Content-Type, Authorization
 
-## 伺服器發現
+## 伺服器探索
 
-為了允許用戶在不明確指定主伺服器的 URL 或其他參數的情況下連接到 Matrix 伺服器，用戶端應使用自動發現機制根據用戶的 Matrix ID 確定伺服器的 URL。自動發現應僅在登錄時進行。
+為了允許用戶在不明確指定主伺服器的 URL 或其他參數的情況下連接到 Matrix 伺服器，用戶端應使用自動探索機制根據用戶的 Matrix ID 確定伺服器的 URL。自動探索應僅在登錄時進行。
 
 在本節中，以下術語具有特定含義：
 
@@ -217,13 +175,13 @@ endpoint 有 implement，但用了不正確的 HTTP method: 傳回 405
 以符合現有用戶端用戶體驗的方式從用戶那裡檢索特定資訊，如果用戶端傾向於這樣做。如果在此時無法提供良好的用戶體驗，可以發生失敗。
 
 `IGNORE`
-停止當前的自動發現機制。如果沒有更多的自動發現機制可用，那麼用戶端可以使用其他方法來確定所需的參數，例如提示用戶或使用預設值。
+停止當前的自動探索機制。如果沒有更多的自動探索機制可用，那麼用戶端可以使用其他方法來確定所需的參數，例如提示用戶或使用預設值。
 
 `FAIL_PROMPT`
-通知用戶自動發現由於無效/空數據而失敗，並 `PROMPT` 該參數。
+通知用戶自動探索由於無效/空數據而失敗，並 `PROMPT` 該參數。
 
 `FAIL_ERROR`
-通知用戶自動發現沒有返回任何可用的 URL。不要繼續當前的登錄過程。此時，已獲得有效數據，但沒有伺服器可為用戶端提供服務。不應進一步猜測，用戶應該做出下一步的慎重決定。
+通知用戶自動探索沒有返回任何可用的 URL。不要繼續當前的登錄過程。此時，已獲得有效數據，但沒有伺服器可為用戶端提供服務。不應進一步猜測，用戶應該做出下一步的慎重決定。
 
 ### Well-known URI
 
@@ -783,22 +741,15 @@ Content-Type: application/json
 
 {{% definition path="api/client-server/definitions/m.login.terms_params" %}}
 
-#### Fallback
+#### 後備機制
 
-Clients cannot be expected to be able to know how to process every
-single login type. If a client does not know how to handle a given login
-type, it can direct the user to a web browser with the URL of a fallback
-page which will allow the user to complete that login step out-of-band
-in their web browser. The URL it should open is:
+不能期望用戶端能夠知道如何處理每種登入類型。如果用戶端不知道如何處理給定的登入類型，它可以將使用者引導到具有後備頁面 URL 的 Web 瀏覽器，這將允許使用者在其 Web 瀏覽器中帶外完成該登入步驟。它應該打開的 URL 是：
 
     /_matrix/client/v3/auth/<auth type>/fallback/web?session=<session ID>
 
-Where `auth type` is the type name of the stage it is attempting and
-`session ID` is the ID of the session given by the homeserver.
+其中 `auth type` 是其嘗試的階段的類型名稱，`session ID` 是由主伺服器提供的會話 ID。
 
-This MUST return an HTML page which can perform this authentication
-stage. This page must use the following JavaScript when the
-authentication has been completed:
+這必須返回一個可以執行此身份驗證階段的 HTML 頁面。當身份驗證完成時，該頁面必須使用以下 JavaScript：
 
 ```js
 if (window.onAuthDone) {
@@ -808,15 +759,9 @@ if (window.onAuthDone) {
 }
 ```
 
-This allows the client to either arrange for the global function
-`onAuthDone` to be defined in an embedded browser, or to use the HTML5
-[cross-document
-messaging](https://www.w3.org/TR/webmessaging/#web-messaging) API, to
-receive a notification that the authentication stage has been completed.
+這允許用戶端安排在嵌入的瀏覽器中定義全局函數 `onAuthDone`，或使用 HTML5 [跨文檔消息傳遞](https://www.w3.org/TR/webmessaging/#web-messaging) API，來接收身份驗證階段已完成的通知。
 
-Once a client receives the notification that the authentication stage
-has been completed, it should resubmit the request with an auth dict
-with just the session ID:
+一旦用戶端收到身份驗證階段已完成的通知，它應提交一個僅包含會話 ID 的 `auth` 字典：
 
 ```json
 {
@@ -824,24 +769,22 @@ with just the session ID:
 }
 ```
 
-##### Example
+##### 示例
 
-A client webapp might use the following JavaScript to open a popup
-window which will handle unknown login types:
+用戶端 Web 應用程序可能會使用以下 JavaScript 打開一個彈出窗口來處理未知的登入類型：
 
 ```js
 /**
- * Arguments:
- *     homeserverUrl: the base url of the homeserver (e.g. "https://matrix.org")
+ * 參數:
+ *     homeserverUrl: 主伺服器的基本 URL（例如 "https://matrix.org"）
  *
- *     apiEndpoint: the API endpoint being used (e.g.
- *        "/_matrix/client/v3/account/password")
+ *     apiEndpoint: 正在使用的 API 端點（例如 "/_matrix/client/v3/account/password"）
  *
- *     loginType: the loginType being attempted (e.g. "m.login.recaptcha")
+ *     loginType: 正在嘗試的 loginType（例如 "m.login.recaptcha"）
  *
- *     sessionID: the session ID given by the homeserver in earlier requests
+ *     sessionID: 在早期請求中由主伺服器提供的會話 ID
  *
- *     onComplete: a callback which will be called with the results of the request
+ *     onComplete: 一個回調函數，將在請求結果中調用
  */
 function unknownLoginType(homeserverUrl, apiEndpoint, loginType, sessionID, onComplete) {
     var popupWindow;
@@ -880,145 +823,112 @@ function unknownLoginType(homeserverUrl, apiEndpoint, loginType, sessionID, onCo
 }
 ```
 
-#### Identifier types
+#### 身份標識類型
 
-Some authentication mechanisms use a user identifier object to identify
-a user. The user identifier object has a `type` field to indicate the
-type of identifier being used, and depending on the type, has other
-fields giving the information required to identify the user as described
-below.
+一些身份驗證機制使用用戶身份標識對象來識別用戶。用戶身份標識對象具有一個 `type` 字段來指示所使用的標識類型，並且根據類型，具有其他字段提供識別用戶所需的信息，如下所述。
 
-This specification defines the following identifier types:
--   `m.id.user`
--   `m.id.thirdparty`
--   `m.id.phone`
+本規範定義了以下標識類型：
+- `m.id.user`
+- `m.id.thirdparty`
+- `m.id.phone`
 
 ##### Matrix 使用者 ID
 
-| Type        | Description                                |
-|-------------|--------------------------------------------|
-| `m.id.user` | The user is identified by their Matrix ID. |
+| 類型           | 描述                                   |
+|----------------|----------------------------------------|
+| `m.id.user`    | 用戶通過其 Matrix ID 被識別。           |
 
-A client can identify a user using their Matrix ID. This can either be
-the fully qualified Matrix user ID, or just the localpart of the user
-ID.
+客戶端可以使用用戶的 Matrix ID 識別用戶。這可以是完全合格的 Matrix 用戶 ID，或者只是用戶 ID 的 localpart。
 
 ```json
 "identifier": {
   "type": "m.id.user",
-  "user": "<user_id or user localpart>"
+  "user": "<user_id 或 user localpart>"
 }
 ```
 
 ##### 第三方 ID
 
-| Type              | Description                                                               |
-|-------------------|---------------------------------------------------------------------------|
-| `m.id.thirdparty` | The user is identified by a third-party identifier in canonicalised form. |
+| 類型                | 描述                                                         |
+|---------------------|--------------------------------------------------------------|
+| `m.id.thirdparty`   | 用戶通過第三方標識符的標準化形式被識別。                     |
 
-A client can identify a user using a 3PID associated with the user's
-account on the homeserver, where the 3PID was previously associated
-using the [`/account/3pid`](#get_matrixclientv3account3pid) API. See the [3PID
-Types](/appendices#3pid-types) Appendix for a list of Third-party
-ID media.
+客戶端可以使用與用戶帳戶關聯的 3PID 識別用戶，其中 3PID 先前已使用 [`/account/3pid`](#get_matrixclientv3account3pid) API 關聯。請參閱 [3PID 類型](/appendices#3pid-types) 附錄以獲取第三方 ID 媒體的列表。
 
 ```json
 "identifier": {
   "type": "m.id.thirdparty",
-  "medium": "<The medium of the third-party identifier>",
-  "address": "<The canonicalised third-party address of the user>"
+  "medium": "<第三方標識符的媒體>",
+  "address": "<用戶的標準化第三方地址>"
 }
 ```
 
 ##### 電話號碼
 
-| Type         | Description                               |
-|--------------|-------------------------------------------|
-| `m.id.phone` | The user is identified by a phone number. |
+| 類型            | 描述                               |
+|-----------------|------------------------------------|
+| `m.id.phone`    | 用戶通過電話號碼被識別。            |
 
-A client can identify a user using a phone number associated with the
-user's account, where the phone number was previously associated using
-the [`/account/3pid`](#get_matrixclientv3account3pid) API. The phone number can be passed in as entered
-by the user; the homeserver will be responsible for canonicalising it.
-If the client wishes to canonicalise the phone number, then it can use
-the `m.id.thirdparty` identifier type with a `medium` of `msisdn`
-instead.
+客戶端可以使用與用戶帳戶關聯的電話號碼識別用戶，其中電話號碼先前已使用 [`/account/3pid`](#get_matrixclientv3account3pid) API 關聯。電話號碼可以按用戶輸入的方式傳遞；主伺服器將負責將其標準化。如果客戶端希望將電話號碼標準化，那麼它可以使用 `m.id.thirdparty` 標識符類型，`medium` 為 `msisdn`。
 
 ```json
 "identifier": {
   "type": "m.id.phone",
-  "country": "<The country that the phone number is from>",
-  "phone": "<The phone number>"
+  "country": "<電話號碼所在的國家>",
+  "phone": "<電話號碼>"
 }
 ```
 
-The `country` is the two-letter uppercase ISO-3166-1 alpha-2 country
-code that the number in `phone` should be parsed as if it were dialled
-from.
+`country` 是電話號碼應該解析為來自哪個國家的兩個字母大寫 ISO-3166-1 alpha-2 國家代碼。
 
 ### 登入
 
-A client can obtain access tokens using the `/login` API.
+客戶端可以使用 `/login` API 獲取訪問令牌。
 
-Note that this endpoint does <span class="title-ref">not</span>
-currently use the [User-Interactive Authentication
-API](#user-interactive-authentication-api).
+注意，目前此端點 **不** 使用 [使用者互動身份驗證 API](#user-interactive-authentication-api)。
 
-For a simple username/password login, clients should submit a `/login`
-request as follows:
+對於簡單的用戶名/密碼登入，客戶端應提交如下的 `/login` 請求：
 
 ```json
 {
   "type": "m.login.password",
   "identifier": {
     "type": "m.id.user",
-    "user": "<user_id or user localpart>"
+    "user": "<user_id 或 user localpart>"
   },
   "password": "<password>"
 }
 ```
 
-Alternatively, a client can use a 3PID bound to the user's account on
-the homeserver using the [`/account/3pid`](#get_matrixclientv3account3pid) API rather than giving the
-`user` explicitly, as follows:
+或者，客戶端可以使用與用戶帳戶在主伺服器上綁定的 3PID，而不是明確地給出 `user`，如下所示：
 
 ```json
 {
   "type": "m.login.password",
   "identifier": {
-    "medium": "<The medium of the third-party identifier>",
-    "address": "<The canonicalised third-party address of the user>"
+    "medium": "<第三方標識符的媒體>",
+    "address": "<用戶的標準化第三方地址>"
   },
   "password": "<password>"
 }
 ```
 
-In the case that the homeserver does not know about the supplied 3PID,
-the homeserver must respond with `403 Forbidden`.
+如果主伺服器不知道提供的 3PID，主伺服器必須回應 `403 Forbidden`。
 
-To log in using a login token, clients should submit a `/login` request
-as follows:
+要使用登入令牌登入，客戶端應提交如下的 `/login` 請求：
 
 ```json
 {
   "type": "m.login.token",
-  "token": "<login token>"
+  "token": "<登入令牌>"
 }
 ```
 
-The `token` must encode the user ID, since there is no other identifying
-data in the request. In the case that the token is not valid, the homeserver must
-respond with `403 Forbidden` and an error code of `M_FORBIDDEN`.
+`token` 必須編碼用戶 ID，因為請求中沒有其他識別數據。如果令牌無效，主伺服器必須回應 `403 Forbidden` 並提供錯誤代碼 `M_FORBIDDEN`。
 
-If the homeserver advertises `m.login.sso` as a viable flow, and the
-client supports it, the client should redirect the user to the
-`/redirect` endpoint for [client login via SSO](#client-login-via-sso). After authentication
-is complete, the client will need to submit a `/login` request matching
-`m.login.token`.
+如果主伺服器宣傳 `m.login.sso` 為可行的流程，並且客戶端支持它，客戶端應該將用戶重定向到 `/redirect` 端點進行 [通過 SSO 客戶端登入](#client-login-via-sso)。身份驗證完成後，客戶端需要提交與 `m.login.token` 匹配的 `/login` 請求。
 
-{{< added-in v="1.7" >}} Already-authenticated clients can additionally generate
-a token for their user ID if supported by the homeserver using
-[`POST /login/get_token`](/client-server-api/#post_matrixclientv1loginget_token).
+{{< added-in v="1.7" >}} 已經驗證的客戶端還可以使用主伺服器支持的 [`POST /login/get_token`](/client-server-api/#post_matrixclientv1loginget_token) 為其用戶 ID 生成一個令牌。
 
 {{% http-api spec="client-server" api="login" %}}
 
@@ -1028,178 +938,112 @@ a token for their user ID if supported by the homeserver using
 
 {{% http-api spec="client-server" api="logout" %}}
 
-#### Appservice Login
+#### 應用服務登入
 
 {{% added-in v="1.2" %}}
 
-An appservice can log in by providing a valid appservice token and a user within the appservice's
-namespace.
+應用服務可以通過提供有效的應用服務令牌和應用服務命名空間內的用戶來進行登入。
 
 {{% boxes/note %}}
-Appservices do not need to log in as individual users in all cases, as they
-can perform [Identity Assertion](/application-service-api#identity-assertion)
-using the appservice token. However, if the appservice needs a scoped token
-for a single user then they can use this API instead.
+應用服務不需要在所有情況下以單個用戶的身份登入，因為它們可以使用應用服務令牌進行 [身份認證](/application-service-api#identity-assertion)。
+然而，如果應用服務需要針對單個用戶的範圍令牌，那麼它們可以使用此 API。
 {{% /boxes/note %}}
 
-This request must be authenticated by the [appservice `as_token`](/application-service-api#registration)
-(see [Client Authentication](#client-authentication) on how to provide the token).
+此請求必須通過 [應用服務 `as_token`](/application-service-api#registration) 進行身份驗證（請參閱 [客戶端身份驗證](#client-authentication) 瞭解如何提供令牌）。
 
-To use this login type, clients should submit a `/login` request as follows:
+要使用此登入類型，客戶端應提交如下的 `/login` 請求：
 
 ```json
 {
   "type": "m.login.application_service",
   "identifier": {
     "type": "m.id.user",
-    "user": "<user_id or user localpart>"
+    "user": "<user_id 或 user localpart>"
   }
 }
 ```
 
-If the access token is not valid, does not correspond to an appservice
-or the user has not previously been registered then the homeserver will
-respond with an errcode of `M_FORBIDDEN`.
+如果訪問令牌無效、不對應於應用服務或用戶尚未註冊，則主伺服器將回應錯誤代碼 `M_FORBIDDEN`。
 
-If the access token does correspond to an appservice, but the user id does
-not lie within its namespace then the homeserver will respond with an
-errcode of `M_EXCLUSIVE`.
+如果訪問令牌對應於應用服務，但用戶 ID 不在其命名空間內，則主伺服器將回應錯誤代碼 `M_EXCLUSIVE`。
 
-#### Login Fallback
+#### 登入後備機制
 
-If a client does not recognize any or all login flows it can use the
-fallback login API:
+如果客戶端不識別任何或所有登入流程，它可以使用後備登入 API：
 
     GET /_matrix/static/client/login/
 
-This returns an HTML and JavaScript page which can perform the entire
-login process. The page will attempt to call the JavaScript function
-`window.onLogin` when login has been successfully completed.
+這將返回一個可以執行整個登入過程的 HTML 和 JavaScript 頁面。該頁面將嘗試在登入成功完成後調用 JavaScript 函數 `window.onLogin`。
 
-{{% added-in v="1.1" %}} Non-credential parameters valid for the `/login`
-endpoint can be provided as query string parameters here. These are to be
-forwarded to the login endpoint during the login process. For example:
+{{% added-in v="1.1" %}} 對於 `/login` 端點有效的非憑證參數可以作為查詢字符串參數提供在此處。在登入過程中，這些參數將被轉發到登入端點。例如：
 
     GET /_matrix/static/client/login/?device_id=GHTYAJCE
 
-### Account registration and management
+### 帳戶註冊與管理
 
 {{% http-api spec="client-server" api="registration" %}}
 
-#### Notes on password management
+#### 密碼管理說明
 
 {{% boxes/warning %}}
-Clients SHOULD enforce that the password provided is suitably complex.
-The password SHOULD include a lower-case letter, an upper-case letter, a
-number and a symbol and be at a minimum 8 characters in length. Servers
-MAY reject weak passwords with an error code `M_WEAK_PASSWORD`.
+客戶端應該強制執行提供的密碼具有足夠的複雜性。密碼應該包括一個小寫字母、一個大寫字母、一個數字和一個符號，且最少為8個字符。伺服器可以以錯誤代碼 `M_WEAK_PASSWORD` 拒絕弱密碼。
 {{% /boxes/warning %}}
 
-### Adding Account Administrative Contact Information
+### 添加帳戶管理聯繫信息
 
-A homeserver may keep some contact information for administrative use.
-This is independent of any information kept by any identity servers,
-though can be proxied (bound) to the identity server in many cases.
+主伺服器可以保存一些供管理使用的聯繫信息。這獨立於任何身份伺服器保存的信息，雖然在許多情況下可以代理（綁定）到身份伺服器。
 
 {{% boxes/note %}}
-This section deals with two terms: "add" and "bind". Where "add" (or
-"remove") is used, it is speaking about an identifier that was not bound
-to an identity server. As a result, "bind" (or "unbind") references an
-identifier that is found in an identity server. Note that an identifier
-can be added and bound at the same time, depending on context.
+本節涉及兩個術語：“添加”和“綁定”。當使用“添加”（或“刪除”）時，它指的是未綁定到身份伺服器的標識。因此，“綁定”（或“解除綁定”）指的是在身份伺服器中找到的標識。請注意，根據上下文，標識可以同時添加和綁定。
 {{% /boxes/note %}}
 
 {{% http-api spec="client-server" api="administrative_contact" %}}
 
-### Current account information
+### 當前帳戶信息
 
 {{% http-api spec="client-server" api="whoami" %}}
 
-#### Notes on identity servers
+#### 關於身份伺服器的說明
 
-Identity servers in Matrix store bindings (relationships) between a
-user's third-party identifier, typically email or phone number, and
-their user ID. Once a user has chosen an identity server, that identity
-server should be used by all clients.
+Matrix 中的身份伺服器存儲用戶的第三方標識（通常是電子郵件或電話號碼）和他們的用戶 ID 之間的綁定（關係）。一旦用戶選擇了一個身份伺服器，該身份伺服器應該由所有客戶端使用。
 
-Clients can see which identity server the user has chosen through the
-`m.identity_server` account data event, as described below. Clients
-SHOULD refrain from making requests to any identity server until the
-presence of `m.identity_server` is confirmed as (not) present. If
-present, the client SHOULD check for the presence of the `base_url`
-property in the event's content. If the `base_url` is present, the
-client SHOULD use the identity server in that property as the identity
-server for the user. If the `base_url` is missing, or the account data
-event is not present, the client SHOULD use whichever default value it
-normally would for an identity server, if applicable. Clients SHOULD NOT
-update the account data with the default identity server when the user
-is missing an identity server in their account data.
+客戶端可以通過 `m.identity_server` 帳戶數據事件查看用戶選擇的身份伺服器，如下所述。在確認 `m.identity_server` 存在之前，客戶端應避免向任何身份伺服器發出請求。如果存在，客戶端應檢查事件內容中是否存在 `base_url` 屬性。如果存在 `base_url`，客戶端應使用該屬性中的身份伺服器作為用戶的身份伺服器。如果 `base_url` 丟失或帳戶數據事件不存在，客戶端應使用它通常使用的默認身份伺服器（如果適用）。當用戶的帳戶數據中缺少身份伺服器時，客戶端不應使用默認身份伺服器更新帳戶數據。
 
-Clients SHOULD listen for changes to the `m.identity_server` account
-data event and update the identity server they are contacting as a
-result.
+客戶端應監聽 `m.identity_server` 帳戶數據事件的變更並相應地更新其正在聯繫的身份伺服器。
 
-If the client offers a way to set the identity server to use, it MUST
-update the value of `m.identity_server` accordingly. A `base_url` of
-`null` MUST be treated as though the user does not want to use an
-identity server, disabling all related functionality as a result.
+如果客戶端提供了設置身份伺服器的方式，它必須相應地更新 `m.identity_server` 的值。`base_url` 為 `null` 時必須被視為用戶不希望使用身份伺服器，從而禁用所有相關功能。
 
-Clients SHOULD refrain from populating the account data as a migration
-step for users who are lacking the account data, unless the user sets
-the identity server within the client to a value. For example, a user
-which has no `m.identity_server` account data event should not end up
-with the client's default identity server in their account data, unless
-the user first visits their account settings to set the identity server.
+客戶端應避免為缺少帳戶數據的用戶填充帳戶數據作為遷移步驟，除非用戶在客戶端中將身份伺服器設置為某個值。例如，沒有 `m.identity_server` 帳戶數據事件的用戶不應最終在其帳戶數據中獲得客戶端的默認身份伺服器，除非用戶首先訪問其帳戶設置來設置身份伺服器。
 
 {{% event event="m.identity_server" %}}
 
-## Capabilities negotiation
+## 能力協商
 
-A homeserver may not support certain operations and clients must be able
-to query for what the homeserver can and can't offer. For example, a
-homeserver may not support users changing their password as it is
-configured to perform authentication against an external system.
+主伺服器可能不支持某些操作，客戶端必須能夠查詢主伺服器可以和不能提供的功能。例如，主伺服器可能不支持用戶更改其密碼，因為它被配置為對外部系統進行身份驗證。
 
-The capabilities advertised through this system are intended to
-advertise functionality which is optional in the API, or which depend in
-some way on the state of the user or server. This system should not be
-used to advertise unstable or experimental features - this is better
-done by the `/versions` endpoint.
+通過此系統廣告的功能旨在廣告 API 中的可選功能，或者在某種程度上取決於用戶或服務器的狀態。此系統不應用於廣告不穩定或實驗性功能 - 這更適合通過 `/versions` 端點進行。
 
-Some examples of what a reasonable capability could be are:
+一些合理功能的示例包括：
 
--   Whether the server supports user presence.
--   Whether the server supports optional features, such as the user or
-    room directories.
--   The rate limits or file type restrictions imposed on clients by the
-    server.
+- 服務器是否支持用戶存在。
+- 服務器是否支持可選功能，例如用戶或房間目錄。
+- 服務器對客戶端施加的速率限制或文件類型限制。
 
-Some examples of what should **not** be a capability are:
+一些不應作為功能的示例包括：
 
--   Whether the server supports a feature in the `unstable`
-    specification.
--   Media size limits - these are handled by the
-    [`/config`](#get_matrixmediav3config) API.
--   Optional encodings or alternative transports for communicating with
-    the server.
+- 服務器是否支持 `unstable` 規範中的功能。
+- 媒體大小限制 - 這些由 [`/config`](#get_matrixmediav3config) API 處理。
+- 與服務器通信的可選編碼或替代傳輸方式。
 
-Capabilities prefixed with `m.` are reserved for definition in the
-Matrix specification while other values may be used by servers using the
-Java package naming convention. The capabilities supported by the Matrix
-specification are defined later in this section.
+以 `m.` 為前綴的功能保留給 Matrix 規範中的定義，而其他值可以由使用 Java 包命名約定的服務器使用。Matrix 規範支持的功能在本節後面定義。
 
 {{% http-api spec="client-server" api="capabilities" %}}
 
-### `m.change_password` capability
+### `m.change_password` 功能
 
-This capability has a single flag, `enabled`, which indicates whether or
-not the user can use the `/account/password` API to change their
-password. If not present, the client should assume that password changes
-are possible via the API. When present, clients SHOULD respect the
-capability's `enabled` flag and indicate to the user if they are unable
-to change their password.
+此功能具有單個標誌 `enabled`，用於指示用戶是否可以使用 `/account/password` API 來更改其密碼。如果未出現此標誌，客戶端應假設可以通過 API 更改密碼。如果存在，客戶端應尊重該功能的 `enabled` 標誌，並向用戶表明是否無法更改其密碼。
 
-An example of the capability API's response for this capability is:
+此功能的能力 API 回應示例如下：
 
 ```json
 {
@@ -1211,14 +1055,11 @@ An example of the capability API's response for this capability is:
 }
 ```
 
-### `m.room_versions` capability
+### `m.room_versions` 功能
 
-This capability describes the default and available room versions a
-server supports, and at what level of stability. Clients should make use
-of this capability to determine if users need to be encouraged to
-upgrade their rooms.
+此功能描述了伺服器支援的默認和可用房間版本及其穩定性級別。客戶端應使用此功能來確定是否需要鼓勵用戶升級他們的房間。
 
-An example of the capability API's response for this capability is:
+此功能的能力 API 回應示例如下：
 
 ```json
 {
@@ -1236,34 +1077,21 @@ An example of the capability API's response for this capability is:
 }
 ```
 
-This capability mirrors the same restrictions of [room
-versions](/rooms) to describe which versions are
-stable and unstable. Clients should assume that the `default` version is
-`stable`. Any version not explicitly labelled as `stable` in the
-`available` versions is to be treated as `unstable`. For example, a
-version listed as `future-stable` should be treated as `unstable`.
+此功能反映了[房間版本](/rooms)的相同限制，以描述哪些版本是穩定的，哪些是不穩定的。客戶端應假設 `default` 版本是 `stable`。任何未在 `available` 版本中明確標記為 `stable` 的版本都應被視為 `unstable`。例如，列為 `future-stable` 的版本應被視為 `unstable`。
 
-The `default` version is the version the server is using to create new
-rooms. Clients should encourage users with sufficient permissions in a
-room to upgrade their room to the `default` version when the room is
-using an `unstable` version.
+`default` 版本是伺服器用來創建新房間的版本。當房間使用 `unstable` 版本時，客戶端應鼓勵具有足夠權限的用戶將其房間升級到 `default` 版本。
 
-When this capability is not listed, clients should use `"1"` as the
-default and only stable `available` room version.
+當此功能未列出時，客戶端應使用 `"1"` 作為默認和唯一穩定的 `available` 房間版本。
 
-### `m.set_displayname` capability
+### `m.set_displayname` 功能
 
-This capability has a single flag, `enabled`, to denote whether the user
-is able to change their own display name via profile endpoints. Cases for
-disabling might include users mapped from external identity/directory
-services, such as LDAP.
+此功能具有單個標誌 `enabled`，用於表示用戶是否能夠通過配置檔端點更改自己的顯示名稱。禁用的情況可能包括從外部身份/目錄服務（如 LDAP）映射的用戶。
 
-Note that this is well paired with the `m.set_avatar_url` capability.
+請注意，此功能與 `m.set_avatar_url` 功能相配合使用。
 
-When not listed, clients should assume the user is able to change their
-display name.
+當未列出此功能時，客戶端應假設用戶可以更改其顯示名稱。
 
-An example of the capability API's response for this capability is:
+此功能的能力 API 回應示例如下：
 
 ```json
 {
@@ -1275,19 +1103,15 @@ An example of the capability API's response for this capability is:
 }
 ```
 
-### `m.set_avatar_url` capability
+### `m.set_avatar_url` 功能
 
-This capability has a single flag, `enabled`, to denote whether the user
-is able to change their own avatar via profile endpoints. Cases for
-disabling might include users mapped from external identity/directory
-services, such as LDAP.
+此功能具有單個標誌 `enabled`，用於表示用戶是否能夠通過配置檔端點更改自己的頭像。禁用的情況可能包括從外部身份/目錄服務（如 LDAP）映射的用戶。
 
-Note that this is well paired with the `m.set_displayname` capability.
+請注意，此功能與 `m.set_displayname` 功能相配合使用。
 
-When not listed, clients should assume the user is able to change their
-avatar.
+當未列出此功能時，客戶端應假設用戶可以更改其頭像。
 
-An example of the capability API's response for this capability is:
+此功能的能力 API 回應示例如下：
 
 ```json
 {
@@ -1299,20 +1123,13 @@ An example of the capability API's response for this capability is:
 }
 ```
 
-### `m.3pid_changes` capability
+### `m.3pid_changes` 功能
 
-This capability has a single flag, `enabled`, to denote whether the user
-is able to add, remove, or change 3PID associations on their account. Note
-that this only affects a user's ability to use the
-[Admin Contact Information](#adding-account-administrative-contact-information)
-API, not endpoints exposed by an Identity Service. Cases for disabling
-might include users mapped from external identity/directory  services,
-such as LDAP.
+此功能具有單個標誌 `enabled`，用於表示用戶是否能夠在其帳戶上添加、刪除或更改 3PID 關聯。請注意，這僅影響用戶使用[管理聯繫信息](#adding-account-administrative-contact-information) API 的能力，而不影響身份服務暴露的端點。禁用的情況可能包括從外部身份/目錄服務（如 LDAP）映射的用戶。
 
-When not listed, clients should assume the user is able to modify their 3PID
-associations.
+當未列出此功能時，客戶端應假設用戶可以修改其 3PID 關聯。
 
-An example of the capability API's response for this capability is:
+此功能的能力 API 回應示例如下：
 
 ```json
 {
