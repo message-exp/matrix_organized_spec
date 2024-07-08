@@ -97,7 +97,7 @@ PDU 的 `auth_events` 字段標識了一組授權發送者發送該事件的事�
 - 如果事件類型是 `m.room.member` ->
   - 目標用戶當前的 `m.room.member` 事件（如果有）。
   - 如果 `membership` = ( `join` or `invite` ) -> 當前的 `m.room.join_rules` 事件（如果有）。
-  - 如果 `membership` = `invite` & `content` 包含 `third_party_invite` -> 
+  - 如果 `membership` = `invite` & `content` 包含 `third_party_invite` ->
     - 當前的 `m.room.third_party_invite` 事件
     - `state_key` 匹配 `content.third_party_invite.signed.token`（如果有）。
   - 如果 `content.join_authorised_via_users_server` 存在，並且[房間版本支持受限房間](https://spec.matrix.org/v1.11/rooms/#feature-matrix)，則 `m.room.member` 事件，其 `state_key` 匹配 `content.join_authorised_via_users_server`。
@@ -121,156 +121,109 @@ PDU 的 `auth_events` 字段標識了一組授權發送者發送該事件的事�
 
 這與被編輯的事件不同，被編輯的事件仍然可以影響房間的狀態。例如，一個被編輯的 `join` 事件仍然會導致該用戶被視為已加入。
 
-
 ### 5.1.4 Soft failure
 
+我們必須防止用戶通過創建引用DAG舊部分的事件來規避封禁（或其他權限限制）。
 
+1. **被封禁的用戶行為**：
+   - 透過他們的伺服器引用他們被封禁前的事件
+     → 這樣他們可以繼續向房間發送消息。
+   - 技術上是完全有效
+     → 不能簡單地拒絕它們，因為無法區分這樣的事件和因延遲而合法的事件。
+     => 接受這些事件
+     → 正常參與狀態解析和聯邦協議
+     → 伺服器可以選擇不將這些事件發送給客戶端
+     → 用戶不會看到這些事件。
 
-It is important that we prevent users from evading bans (or other power
- restrictions) by creating events which reference old parts of the DAG.
- For example, a banned user could continue to send messages to a room by
- having their server send events which reference the event before they
- were banned. Note that such events are entirely valid, and we cannot
- simply reject them, as it is impossible to distinguish such an event
- from a legitimate one which has been delayed. We must therefore accept
- such events and let them participate in state resolution and the
- federation protocol as normal. However, servers may choose not to send
- such events on to their clients, so that end users won’t actually see
- the events.
+當這種情況發生時，
+伺服器通常可以很容易地察覺，
+因為他們可以看到新事件根據“當前狀態”（即所有前進端點的解析狀態）並未通過授權檢查。
+雖然事件在技術上是有效的，
+但伺服器可以選擇不通知客戶端關於這個新事件。
 
+這樣可以阻止伺服器通過這種方式發送規避封禁的事件，
+因為最終用戶實際上不會看到這些事件。
 
-When this happens it is often fairly obvious to servers, as they can see
- that the new event doesn’t actually pass auth based on the “current
- state” (i.e. the resolved state across all forward extremities). While
- the event is technically valid, the server can choose to not notify
- clients about the new event.
+1. **事件檢查**：
+   - 當家庭伺服器通過聯邦協議接收到新事件時，
+     應檢查該事件是否通過基於房間當前狀態的授權檢查（以及基於事件狀態的檢查）。
 
+2. **軟失敗標記**：
+   - 如果事件未通過基於房間當前狀態的授權檢查，
+     但通過了基於事件狀態的授權檢查，則應該將其標記為“軟失敗”。
 
-This discourages servers from sending events that evade bans etc. in
- this way, as end users won’t actually see the events.
+3. **軟失敗事件處理**：
+   - 當事件被標記為“軟失敗”時：
+     - 不會被傳遞給客戶端。
+     - 不會被新事件引用（即，它們不應該被添加到伺服器的房間前進端點列表中）。
+     - 其他方面則按通常方式處理。
 
+4. **軟失敗事件的影響**：
+   - 如果後續事件引用了軟失敗的事件，這些事件將正常參與狀態解析。
+   - 狀態解析算法的任務是確保惡意事件無法通過這種機制注入房間狀態。
 
+5. **軟失敗事件通知客戶端**：
+   - 由於軟失敗的狀態事件正常參與狀態解析，
+     這些事件可能會出現在房間的當前狀態中，
+     在這種情況下應按通常方式通知客戶端（例如，在同步響應的 `state` 部分中發送）。
 
-When the homeserver receives a new event over federation it should also
- check whether the event passes auth checks based on the current state of
- the room (as well as based on the state at the event). If the event does
- not pass the auth checks based on the *current state* of the room (but
- does pass the auth checks based on the state at that event) it should be
- “soft failed”.
+6. **聯邦請求中的軟失敗事件**：
+   - 在適當情況下，應該在聯邦請求（例如 `/event/<event_id>`）中返回軟失敗的事件。
+   - 注意，只有在請求中包含引用了軟失敗事件的事件時，
+     軟失敗事件才會在 `/backfill` 和 `/get_missing_events` 響應中返回。
 
+**例子**
+考慮以下事件圖：
 
-When an event is “soft failed” it should not be relayed to the client
- nor be referenced by new events created by the homeserver (i.e. they
- should not be added to the server’s list of forward extremities of the
- room). Soft failed events are otherwise handled as usual.
-
-
-
- Soft failed events participate in state resolution as normal if further
- events are received which reference it. It is the job of the state
- resolution algorithm to ensure that malicious events cannot be injected
- into the room state via this mechanism.
- 
-
- Because soft failed state events participate in state resolution as
- normal, it is possible for such events to appear in the current state of
- the room. In that case the client should be told about the soft failed
- event in the usual way (e.g. by sending it down in the `state` section
- of a sync response).
- 
-
- A soft failed event should be returned in response to federation
- requests where appropriate (e.g. in `/event/<event_id>`). Note that soft
- failed events are returned in `/backfill` and `/get_missing_events`
- responses only if the requests include events referencing the soft
- failed events.
- 
-Example
-
-
-As an example consider the event graph:
-
-
-
-```
+```text
   A
  /
 B
-
 ```
 
-where `B` is a ban of a user `X`. If the user `X` tries to set the topic
- by sending an event `C` while evading the ban:
+其中 `B` 是對用戶 `X` 的封禁。如果用戶 `X` 試圖通過發送事件 `C` 來設置主題，以規避封禁：
 
-
-
-```
+```text
   A
  / \
 B   C
-
 ```
 
-servers that receive `C` after `B` should soft fail event `C`, and so
- will neither relay `C` to its clients nor send any events referencing
- `C`.
- 
+接收到 `C` 的伺服器應該將事件 `C` 標記為軟失敗，因此不會將 `C` 傳遞給客戶端，也不會發送任何引用 `C` 的事件。
 
+如果稍後另一個伺服器發送了一個同時引用 `B` 和 `C` 的事件 `D`（這可能發生在它先接收到 `C` 而後接收到 `B` 的情況下）：
 
-If later another server sends an event `D` that references both `B` and
- `C` (this can happen if it received `C` before `B`):
- 
-
-
-
-```
+```text
   A
  / \
 B   C
  \ /
   D
-
 ```
 
-then servers will handle `D` as normal. `D` is sent to the servers'
- clients (assuming `D` passes auth checks). The state at `D` may resolve
- to a state that includes `C`, in which case clients should also to be
- told that the state has changed to include `C`. (*Note*: This depends on
- the exact state resolution algorithm used. In the original version of
- the algorithm `C` would be in the resolved state, whereas in latter
- versions the algorithm tries to prioritise the ban over the topic
- change.)
+則伺服器將正常處理 `D`，並將其發送給客戶端（假設 `D` 通過授權檢查）。`D` 的狀態可能解析為包含 `C`，在這種情況下應通知客戶端狀態已更改以包含 `C`。（注意：這取決於使用的確切狀態解析算法。在原始算法中，`C` 會在解析狀態中，而在後來的版本中，算法試圖優先封禁而不是主題變更。）
 
+這基本上等同於一個伺服器完全沒有接收到 `C`，因此請求另一個伺服器獲取 `C` 分支的狀態。
 
-Note that this is essentially equivalent to the situation where one
- server doesn’t receive `C` at all, and so asks another server for the
- state of the `C` branch.
+回到發送 `D` 之前的圖：
 
-
-Let’s go back to the graph before `D` was sent:
-
-
-
-```
+```text
   A
  / \
 B   C
-
 ```
 
-If all the servers in the room saw `B` before `C` and so soft fail `C`,
- then any new event `D'` will not reference `C`:
+如果房間中的所有伺服器在 `C` 之前看到 `B`，並因此軟失敗 `C`，則任何新事件 `D'` 都不會引用 `C`：
 
-
-
-```
+```text
   A
  / \
 B   C
 |
 D'
-
 ```
+
+> 兩種圖是個能在不同伺服器中共存，雖然圖有些許不同，但呈現的結果是同步的
 
 ### 5.1.5 Retrieving event authorization information
 
