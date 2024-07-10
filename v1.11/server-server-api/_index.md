@@ -1,10 +1,6 @@
 # Server-Server API
 
-- [API standards](./1-API-standards.md#1-api-標準)
-  - [TLS](./1-API-standards.md#11-tls)
-  - [Unsupported endpoints](./1-API-standards.md#12-不支援的端點)
 
-<!-- 
 - [Server-Server API](#server-server-api)
   - [API standards](#api-standards)
     - [TLS](#tls)
@@ -12,7 +8,7 @@
   - [Server discovery](#server-discovery)
     - [Resolving server names](#resolving-server-names)
     - [Server implementation](#server-implementation)
-      - [Retrieving server keys](#retrieving-server-keys)
+    - [Retrieving server keys](#retrieving-server-keys)
       - [Publishing Keys](#publishing-keys)
       - [Querying Keys Through Another Server](#querying-keys-through-another-server)
 - [POST](#post)
@@ -115,8 +111,7 @@
     - [Calculating the reference hash for an event](#calculating-the-reference-hash-for-an-event)
     - [Calculating the content hash for an event](#calculating-the-content-hash-for-an-event)
     - [Example code](#example-code)
-  - [Security considerations](#security-considerations) 
--->
+  - [Security considerations](#security-considerations)
 
 
 

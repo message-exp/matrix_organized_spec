@@ -227,104 +227,64 @@ D'
 
 ### 5.1.5 Retrieving event authorization information
 
-
-The homeserver may be missing event authorization information, or wish
- to check with other servers to ensure it is receiving the correct auth
- chain. These APIs give the homeserver an avenue for getting the
- information it needs.
-
-
-
-
+伺服器可能缺少事件授權資訊，或者希望與其他伺服器檢查以確保它接收正確的授權鏈。這些 API 為伺服器提供了獲取所需資訊的途徑。
 
 <!-- markdownlint-disable -->
-<h1>GET</h1> 
+<h1>GET <a>/\_matrix/federation/v1/event\_auth/{roomId}/{eventId}</a></h1> 
 <!-- markdownlint-enable -->
-/\_matrix/federation/v1/event\_auth/{roomId}/{eventId}
-
-
-
-
 
 ---
 
-
-Retrieves the complete auth chain for a given event.
-
-
-
+檢索給定事件的完整授權鏈。
 
 | Rate-limited: | No |
 | --- | --- |
 | Requires authentication: | Yes |
 
-
-
-
 ---
-
 
 <!-- markdownlint-disable -->
 <h2>Request</h2> 
 <!-- markdownlint-enable -->
 
-
-#<!-- markdownlint-disable -->
-<h2>Request</h2> 
-<!-- markdownlint-enable --> parameters
-
-
-
+Request parameters
 
 path parameters
-| Name | Type | Description |
+| 名稱 | 類型 | 描述 |
 | --- | --- | --- |
-| `eventId` | `string` | **Required:** The event ID to get the auth chain of. |
-| `roomId` | `string` | **Required:** The room ID to get the auth chain for. |
-
-
-
+| `eventId` | `string` | **Required:** 獲取授權鏈的事件 ID。 |
+| `roomId` | `string` | **Required:** 獲取授權鏈的房間 ID。 |
 
 ---
-
 
 <!-- markdownlint-disable -->
 <h2>Responses</h2> 
 <!-- markdownlint-enable -->
 
-
-
-
-| Status | Description |
+| 狀態 | 描述 |
 | --- | --- |
-| `200` | The auth chain for the event. |
-
+| `200` | 該事件的授權鏈。 |
 
 <!-- markdownlint-disable -->
 <h3>200 response</h3> 
 <!-- markdownlint-enable -->
 
-
-
-
-| Name | Type | Description |
+<!-- markdownlint-disable -->
+| 名稱 | 類型 | 描述 |
 | --- | --- | --- |
-| `auth_chain` | `[PDU]` | **Required:** The [PDUs](/v1.11/server-server-api/#pdus) forming the  auth chain  of the given event. The event format varies depending on the  room version - check the [room version specification](/v1.11/rooms)  for precise event formats. |
+| `auth_chain` | `[PDU]` | **Required:** 形成給定事件授權鏈的 [PDUs](#5-pdus)。事件格式會根據房間版本而有所不同 - 查看 [房間版本規範](/v1.11/rooms) 以獲取精確的事件格式。 |
+<!-- markdownlint-enable -->
 
-
-
-
-```
+```json
 {
   "auth_chain": [
     {
       "content": {
-        "see_room_version_spec": "The event format changes depending on the room version."
+        "see_room_version_spec": "事件格式會根據房間版本而改變。"
       },
       "room_id": "!somewhere:example.org",
       "type": "m.room.minimal_pdu"
     }
   ]
 }
-
 ```
