@@ -16,9 +16,9 @@
 - [Conventions for Matrix APIs](https://spec.matrix.org/v1.11/appendices#conventions-for-matrix-apis)
 - [Web Browser Clients](https://spec.matrix.org/v1.11/client-server-api/#web-browser-clients)
 
-## 標準錯誤回應
+### 標準錯誤回應
 
-### 格式
+#### 格式
 
 ```json
 {
@@ -38,12 +38,12 @@
   
 其他 additional key: 視 `errcode` 規範而定
 
-### 使用
+#### 使用
 
 - 有 error code -> 看 error code
 - `M_UNKNOWN` -> 看 HTTP 狀態碼
 
-### 常見錯誤代碼
+#### 常見錯誤代碼
 
 `M_FORBIDDEN` 禁止存取
 
@@ -66,7 +66,7 @@ endpoint 有 implement，但用了不正確的 HTTP method: 傳回 405（Method 
 
 `M_UNKNOWN` 發生未知錯誤
 
-### 其他錯誤代碼
+#### 其他錯誤代碼
 
 `M_UNAUTHORIZED` 請求未正確授權，通常是登入失敗
 
@@ -84,9 +84,9 @@ endpoint 有 implement，但用了不正確的 HTTP method: 傳回 405（Method 
 
 `M_THREEPID_NOT_FOUND` 由於找不到與第三方 pid 相符的記錄而無法使用給予 API 的第三方 pid 
 
-`M_THREEPID_AUTH_FAILED` 無法對第三方 identifier 進行身份驗證
+`M_THREEPID_AUTH_FAILED` 無法對第三方識別碼（identifier）行身份驗證
 
-`M_THREEPID_DENIED` 伺服器不允許此第三方 identifier。這可能發生在伺服器僅允許來自特定網域的電子郵件地址等情況
+`M_THREEPID_DENIED` 伺服器不允許此第三方識別碼。這可能發生在伺服器僅允許來自特定網域的電子郵件地址等情況
 
 `M_SERVER_NOT_TRUSTED`
 用戶端的請求使用了此伺服器不信任的第三方伺服器，例如不信任的 identity 伺服器
@@ -118,7 +118,7 @@ endpoint 有 implement，但用了不正確的 HTTP method: 傳回 405（Method 
 
 `M_CANNOT_LEAVE_SERVER_NOTICE_ROOM` 用戶無法拒絕加入伺服器通知 room （server notices room）的邀請。見 [伺服器通知](#server-notices)
 
-### 速率限制
+#### Rate limiting 速率限制
 
 - 主伺服器**應該**實作速率限制機制以降低過載的風險
 - 超過速率限制錯誤訊息：  
@@ -132,78 +132,64 @@ endpoint 有 implement，但用了不正確的 HTTP method: 傳回 405（Method 
 - 主伺服器**應該**於 429 狀態碼的任何回應中包含 `Retry-After` 標頭
 - _`retry_after_ms` 已棄用（v1.10）_
 
-### 交易標識符
+### Transaction identifiers 交易識別碼
 
-用戶端-伺服器 API 通常使用 `HTTP PUT` 提交請求，並在 HTTP 路徑中使用用戶端生成的交易標識符。
+- client-server API 通常使用 `HTTP PUT` 提交 附帶交易識別碼（由客戶端生成） 的請求
+- 目的：讓主伺服器區分 新請求/重傳請求 （就這樣，沒了）
+- 範圍（scope）：單一裝置及單一 HTTP endpoint（即同一裝置對不同 endpoint 使用相同的交易識別碼，會被當作是不同的請求；登出前與重新登入後的請求也不同。見 [Relationship between access tokens and devices](https://spec.matrix.org/v1.11/client-server-api/#relationship-between-access-tokens-and-devices)）
+- 用戶端：請求完成後，下個請求的 `{txnId}` 值應該更改（未規範具體方式，建議使用單調遞增的整數）
+- 伺服器：如果交易 ID 與先前的請求相同、HTTP 請求的路徑相同  
+  →重傳：主伺服器應傳回與原始請求相同的 HTTP 回應代碼和內容
+- 某些 API 端點可能允許或要求使用不含交易識別碼 的 POST 請求。如果這是可選的（optional），則強烈建議使用 PUT 請求
 
-交易 ID 的目的是讓主伺服器能夠區分新請求和先前請求的重傳，以使請求具備冪等性。
+## 瀏覽器用戶端
 
-交易 ID 應**僅**用於此目的。
-
-請求完成後，用戶端應更改下一個請求的 `{txnId}` 值。如何實現這一點由實現細節決定。建議用戶端使用版本 4 的 UUID 或當前時間戳和單調遞增整數的組合。
-
-如果交易 ID 與先前請求相同，並且 HTTP 請求的路徑也相同，主伺服器應識別該請求為重傳。
-
-如果識別到重傳，主伺服器應返回與原始請求相同的 HTTP 回應碼和內容。例如，`PUT /_matrix/client/v3/rooms/{roomId}/send/{eventType}/{txnId}` 將返回 `200 OK`，並在回應體中返回原始請求的 `event_id`。
-
-交易 ID 的範圍僅限於單個 [設備](../index.html#devices) 和單個 HTTP 端點。換句話說：單個設備可以使用相同的交易 ID 發送請求到 [`PUT /_matrix/client/v3/rooms/{roomId}/send/{eventType}/{txnId}`](#put_matrixclientv3roomsroomidsendeventtypetxnid) 和 [`PUT /_matrix/client/v3/sendToDevice/{eventType}/{txnId}`](#put_matrixclientv3sendtodeviceeventtypetxnid)，這兩個請求會被認為是不同的，因為這兩個端點被視為獨立端點。同樣，如果用戶端在兩次使用相同交易 ID 的請求之間登出並重新登錄，這兩個請求是不同的，因為登錄和登出的操作創建了一個新設備（除非在 [`POST /_matrix/client/v3/login`](#post_matrixclientv3login) 中傳遞了現有的 `device_id`）。另一方面，如果用戶端在 [刷新](#refreshing-access-tokens) 訪問令牌後重新使用相同端點的交易 ID，則將其視為重複請求並被忽略。另見 [訪問令牌和設備之間的關係](#relationship-between-access-tokens-and-devices)。
-
-一些 API 端點可能允許或要求使用沒有交易 ID 的 `POST` 請求。在這是可選的情況下，強烈建議使用 `PUT` 請求。
-
-> [!NOTE]
-> RATIONALE: 在 `v1.7` 之前，交易 ID 的範圍是“用戶端會話”而不是設備。
-
-## 網頁瀏覽器用戶端
-
-在現實中，可以預期一些用戶端將被編寫為在網頁瀏覽器或類似環境中運行。在這些情況下，主伺服器應回應預檢請求，並在所有請求中提供跨來源資源共享（CORS）標頭。
-
-伺服器必須預期用戶端將使用 `OPTIONS` 請求接近它們，允許用戶端探索 CORS 標頭。本規範中的所有端點都支持 `OPTIONS` 方法，然而當使用 `OPTIONS` 請求接近時，伺服器不得執行為端點定義的任何邏輯。
-
-當用戶端使用請求接近伺服器時，伺服器應回應該路由的 CORS 標頭。推薦伺服器在所有請求中返回的 CORS 標頭為：
-
-    Access-Control-Allow-Origin: *
-    Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS
-    Access-Control-Allow-Headers: X-Requested-With, Content-Type, Authorization
+- 主伺服器應該回應 pre-flight 請求，並向所有請求提供跨來源資源共用（CORS）標頭
+- 伺服器**必須**預期客戶端會透過 OPTION 請求來接近它們，從而允許用戶端探索 CORS 標頭。  
+  規範中所有 endpoint 都支援 OPTION 方法，但是使用 OPTION 請求時，伺服器**不得**執行 endpoint 定義的任何邏輯
+- 當用戶端向伺服器發出請求時，伺服器應使用該路由的 CORS 標頭進行回應  
+  伺服器針對所有請求傳回的建議 CORS 標頭：  
+  ```
+  Access-Control-Allow-Origin: *
+  Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS
+  Access-Control-Allow-Headers: X-Requested-With, Content-Type, Authorization
+  ```
 
 ## 伺服器探索
 
-為了允許用戶在不明確指定主伺服器的 URL 或其他參數的情況下連接到 Matrix 伺服器，用戶端應使用自動探索機制根據用戶的 Matrix ID 確定伺服器的 URL。自動探索應僅在登錄時進行。
-
-在本節中，以下術語具有特定含義：
-
-`PROMPT`
-以符合現有用戶端用戶體驗的方式從用戶那裡檢索特定資訊，如果用戶端傾向於這樣做。如果在此時無法提供良好的用戶體驗，可以發生失敗。
-
-`IGNORE`
-停止當前的自動探索機制。如果沒有更多的自動探索機制可用，那麼用戶端可以使用其他方法來確定所需的參數，例如提示用戶或使用預設值。
-
-`FAIL_PROMPT`
-通知用戶自動探索由於無效/空數據而失敗，並 `PROMPT` 該參數。
-
-`FAIL_ERROR`
-通知用戶自動探索沒有返回任何可用的 URL。不要繼續當前的登錄過程。此時，已獲得有效數據，但沒有伺服器可為用戶端提供服務。不應進一步猜測，用戶應該做出下一步的慎重決定。
+- 用戶端應該利用自動探索機制，使用使用者的 Matrix ID 決定伺服器的 URL
+- 自動探索僅用於登入時
+- 本節術語：
+  - `PROMPT`
+  - `IGNORE` 停止目前的自動探索機制。若無更多自動探索機制可用，用戶端可使用其他方式來決定所需參數
+  - `FAIL_PROMPT` 通知使用者由於參數無效/空資料及 `PROMPT`，自動探索失敗
+  - `FAIL_ERROR` 通知使用者自動探索未傳回任何可用的 URL。   
+    不要繼續目前的登入流程。此時已經取得了有效資料，但是還沒有伺服器可以為用戶端提供服務。不應嘗試進一步猜測，使用者應決定下一步該做什麼。
 
 ### Well-known URI
 
-> [!NOTE]
-> INFO: 根據本規範中的 [CORS](#web-browser-clients) 部分，託管 `.well-known` JSON 文件的伺服器應提供 CORS 標頭。
+> [!Note]
+> INFO: 依規範中的 CORS 章節，hosting `.well-known` 的伺服器**應該**提供 CORS 標頭
 
-`.well-known` 方法使用位於預定位置的 JSON 文件來指定參數值。此方法的流程如下：
-
-1. 從用戶的 Matrix ID 中提取 [伺服器名稱](/appendices/#server-name)，方法是按第一個冒號拆分 Matrix ID。
-2. 根據 [語法](/appendices/#server-name) 從伺服器名稱中提取主機名。
-3. 發出 GET 請求到 `https://hostname/.well-known/matrix/client`。
-    1. 如果返回的狀態碼是 404，則 `IGNORE`。
-    2. 如果返回的狀態碼不是 200，或者回應主體為空，則 `FAIL_PROMPT`。
-    3. 將回應主體解析為 JSON 對象
-        1. 如果無法解析內容，則 `FAIL_PROMPT`。
-    4. 從 `m.homeserver` 屬性中提取 `base_url` 值。此值將用作主伺服器的基礎 URL。
-        1. 如果未提供此值，則 `FAIL_PROMPT`。
-    5. 驗證主伺服器基礎 URL：
-        1. 將其解析為 URL。如果它不是 URL，則 `FAIL_ERROR`。
-        2. 用戶端應通過連接到 [`/_matrix/client/versions`](/client-server-api/#get_matrixclientversions) 端點驗證該 URL 指向有效的主伺服器，確保它不返回錯誤，並解析和驗證數據是否符合預期的回應格式。如果驗證中的任何步驟失敗，則 `FAIL_ERROR`。驗證僅作為對配置錯誤的簡單檢查，以確保發現的地址指向有效的主伺服器。
-        3. 需要注意的是，`base_url` 值可能包含結尾的 `/`。消費者應準備好處理這兩種情況。
-    6. 如果存在 `m.identity_server` 屬性，則提取 `base_url` 值用作身份伺服器的基礎 URL。對此 URL 的驗證與上述步驟相同，但使用 `/_matrix/identity/v2` 作為連接端點。如果存在 `m.identity_server` 屬性，但沒有 `base_url` 值，則 `FAIL_PROMPT`。
+`.well-known` 方法使用預先定下的位置來指定參數值，流程如下：
+1. 透過在第一個冒號處拆分 Matrix ID，從使用者的 Matrix ID 中提取[伺服器名稱（server name）](https://spec.matrix.org/v1.11/appendices/#server-name)
+2. 依照[語法](https://spec.matrix.org/v1.11/appendices/#server-name)從伺服器名稱中提取主機名稱（host name）
+3. 向 `https://hostname/.well-known/matrix/client` 發出 GET 請求
+   1. 404 => `IGNORE`
+   2. 不是 200 或回應 body 為空 => `FAIL_PROMPT`
+   3. 將回應 body 解析成 JSON 物件
+      1. 無法解析內容 => `FAIL_PROMPT`
+   4. 從 `m.homeserver` 屬性中提取 `base_url`。此值將用作主伺服器的基本 URL
+      1. 未提供此值 => `FAIL_PROMPT`
+   5. 驗證主伺服器基本 URL
+      1. 將其解析為 URL  
+         不是 URL => `FAIL_ERROR`
+      2. 用戶端應該在接受之前透過連接到 [`/_matrix/client/versions`](https://spec.matrix.org/v1.11/client-server-api/#get_matrixclientversions) endpoint 來驗證 URL 是否指向有效的主伺服器，確定它不會傳回錯誤，並解析和驗證資料是否符合預期的回應格式  
+         驗證中的任何步驟失敗 => `FAIL_ERROR`  
+         透過對配置錯誤的簡單檢查來進行驗證，以確保探索到的地址指向有效的主伺服器
+      4. `base_url` 可能以 `/` 結尾
+   6. 如果存在 `m.identity_server` 屬性，請擷取 `base_url` 值以用作身分識別伺服器的基本 URL。此 URL 的驗證與上述步驟相同，但使用 `/_matrix/identity/v2` 作為要連線的 endpoint  
+      `m.identity_server` 屬性存在，但沒有 `base_url` 值 => `FAIL_PROMPT`
 
 {{% http-api spec="client-server" api="wellknown" %}}
 
