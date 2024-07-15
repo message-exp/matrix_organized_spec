@@ -1,24 +1,24 @@
 # Client-Server API
 
-1. [API 標準 (API Standards)](/v1.11/client-server-api/1_api_standards.md)
+1. [API 標準 (API Standards)](./1_api_standards.md)
 
-2. [網路瀏覽器用戶端 (Web Browser Clients)](https://github.com/message-exp/matrix_organized_spec/tree/main/v1.11/client-server-api/2_web_browser_clients.md)
+2. [網路瀏覽器用戶端 (Web Browser Clients)](/v1.11/client-server-api/2_web_browser_clients.md)
 
-3. [伺服器探索 (Server Discovery)](https://github.com/message-exp/matrix_organized_spec/tree/main/v1.11/client-server-api/3_server_discovery.md)
+3. [伺服器探索 (Server Discovery)](/v1.11/client-server-api/3_server_discovery.md)
 
-4. [用戶端驗證 (Client Authentication)](https://github.com/message-exp/matrix_organized_spec/tree/main/v1.11/client-server-api/4_client_authentication.md)
+4. [用戶端驗證 (Client Authentication)](/v1.11/client-server-api/4_client_authentication.md)
 
-5. [能力協商 (Capability Negotiation)](https://github.com/message-exp/matrix_organized_spec/tree/main/v1.11/client-server-api/5_capability_negotiation.md)
+5. [能力協商 (Capability Negotiation)](/v1.11/client-server-api/5_capability_negotiation.md)
 
-6. [篩選 (Filtering)](https://github.com/message-exp/matrix_organized_spec/tree/main/v1.11/client-server-api/6_filtering.md)
+6. [篩選 (Filtering)](/v1.11/client-server-api/6_filtering.md)
 
-7. [事件 (Events)](https://github.com/message-exp/matrix_organized_spec/tree/main/v1.11/client-server-api/7_events.md)
+7. [事件 (Events)](/v1.11/client-server-api/7_events.md)
 
-8. [房間 (Rooms)](https://github.com/message-exp/matrix_organized_spec/tree/main/v1.11/client-server-api/8_rooms.md)
+8. [房間 (Rooms)](/v1.11/client-server-api/8_rooms.md)
 
-9. [使用者資料 (User Data)](https://github.com/message-exp/matrix_organized_spec/tree/main/v1.11/client-server-api/9_user_data.md)
+9. [使用者資料 (User Data)](/v1.11/client-server-api/9_user_data.md)
 
-10. [模組 (Modules)](https://github.com/message-exp/matrix_organized_spec/tree/main/v1.11/client-server-api/10_modules.md)
+10. [模組 (Modules)](/v1.11/client-server-api/10_modules.md)
 
 ---
 
