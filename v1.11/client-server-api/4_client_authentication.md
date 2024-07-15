@@ -1,5 +1,53 @@
 ## 用戶端驗證
 
+1. [使用 access token](#使用-access-token)
+
+2. [Access token 與裝置間的關係](#access-token-與裝置間的關係)
+
+3. [更新 access token](#更新-access-token)
+
+4. [軟登出 (Soft logout)](#軟登出-soft-logout)
+
+5. [(User-Interactive Authentication API)]()
+
+   1. [概述]()
+
+   2. [(User-interactive API in the REST API)]()
+
+   3. [(Example)]()
+
+   4. [(Authentication types)]()
+
+      1. [(Password-based)]()
+      
+      2. [(Google ReCaptcha)]()
+
+      3. [(Single Sign-On)]()
+
+      4. [(Email-based (Identity/homeserver))]()
+
+      5. []()
+
+      6. 
+
+      7. 
+
+      8. 
+
+   5. []()
+
+   6. []()
+
+6. [登入]()
+
+7. [帳戶註冊及管理]()
+
+8. []()
+
+9. []()
+
+---
+
 大多數 API endpoint 要求使用者透過以 access token 的形式提供先前獲得的憑證來識別自己的身分
 
 access token 通常是透過登入或註冊過程獲得的。access token 可能會過期；可以使用 refresh token 產生新的 access token
@@ -27,7 +75,7 @@ _`access_token=TheTokenHere` 方式已棄用，但主伺服器一樣要支援_
 - 若軟登出設定為 `true`，它可以重新登入該用戶，且保留任何用戶端的持續資訊
 - 否則，認定該用戶已登出
 
-### access token 與裝置間的關係
+### Access token 與裝置間的關係
 
 - 用戶端裝置與 access token 及 refresh token 密切相關
 - Matrix 伺服器應紀錄每個 access token 與 refresh token 屬於哪個裝置，以正確處理請求
@@ -48,6 +96,9 @@ _`access_token=TheTokenHere` 方式已棄用，但主伺服器一樣要支援_
 - 不支援 refresh token 的用戶端的處理由主伺服器決定  
   用戶端透過在 `/login` 和 `/register` endpoint 的請求 body 中加入 `refresh_token: true` 屬性來表示對 refresh token 的支援
 
-### 軟登出（soft logout）
+### 軟登出 (soft logout)
 
-......
+- 伺服器若要求重新驗證，又不想讓 session 失效的時候，使用軟登出
+- 伺服器於 `M_UNKNOWN_TOKEN` 錯誤回應中  
+  `soft_logout: true` => 軟登出
+  否則都不是（預設為 `false`）
