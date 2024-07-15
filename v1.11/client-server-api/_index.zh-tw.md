@@ -1,201 +1,26 @@
 # Client-Server API
 
-## API Standard
+1. [API 標準 (API Standards)](/v1.11/client-server-api/1_api_standards.md)
 
-- HTTP APIs
-- JSON
-- UTF-8
-- 使用不公開的 `access_token` 進行驗證
-- 所有 POST 及 PUT 的 endpoint，客戶端都必須提供包含（可能為空）JSON 的請求（request），且標頭（header）應註明 `Content-Type: application/json`（非必須），但以下 endpoint 除外：
-  - [`POST /_matrix/media/v3/upload`](https://spec.matrix.org/v1.11/client-server-api/#post_matrixmediav3upload)  
-    [`PUT /_matrix/media/v3/upload/{serverName}/{mediaId}`](https://spec.matrix.org/v1.11/client-server-api/#put_matrixmediav3uploadservernamemediaid)  
-    以上傳的媒體作為 request body
-  - [`POST /_matrix/client/v3/logout`](https://spec.matrix.org/v1.11/client-server-api/#post_matrixclientv3logout)  
-    [`POST /_matrix/client/v3/logout/all`](https://spec.matrix.org/v1.11/client-server-api/#post_matrixclientv3logoutall)  
-    採用空 request body
-- [Conventions for Matrix APIs](https://spec.matrix.org/v1.11/appendices#conventions-for-matrix-apis)
-- [Web Browser Clients](https://spec.matrix.org/v1.11/client-server-api/#web-browser-clients)
+2. [網路瀏覽器用戶端 (Web Browser Clients)](https://github.com/message-exp/matrix_organized_spec/tree/main/v1.11/client-server-api/2_web_browser_clients.md)
 
-### 標準錯誤回應
+3. [伺服器探索 (Server Discovery)](https://github.com/message-exp/matrix_organized_spec/tree/main/v1.11/client-server-api/3_server_discovery.md)
 
-#### 格式
+4. [用戶端驗證 (Client Authentication)](https://github.com/message-exp/matrix_organized_spec/tree/main/v1.11/client-server-api/4_client_authentication.md)
 
-```json
-{
-  "errcode": "<error code>",
-  "error": "<error message>"
-}
-```
+5. [能力協商 (Capability Negotiation)](https://github.com/message-exp/matrix_organized_spec/tree/main/v1.11/client-server-api/5_capability_negotiation.md)
 
-**error**: 人類可讀的訊息，通常是解釋出錯原因的句子
+6. [篩選 (Filtering)](https://github.com/message-exp/matrix_organized_spec/tree/main/v1.11/client-server-api/6_filtering.md)
 
-**errcode**: 
-- 唯一字串（unique string）
-- 大寫 namespace 加底線 `_`  
-  namespace 可自訂  
-  Matrix 規範的 namespace 以 `M_` 開頭  
-  _例：`COM.MYDOMAIN.HERE_FORBIDDEN`_
-  
-其他 additional key: 視 `errcode` 規範而定
+7. [事件 (Events)](https://github.com/message-exp/matrix_organized_spec/tree/main/v1.11/client-server-api/7_events.md)
 
-#### 使用
+8. [房間 (Rooms)](https://github.com/message-exp/matrix_organized_spec/tree/main/v1.11/client-server-api/8_rooms.md)
 
-- 有 error code -> 看 error code
-- `M_UNKNOWN` -> 看 HTTP 狀態碼
+9. [使用者資料 (User Data)](https://github.com/message-exp/matrix_organized_spec/tree/main/v1.11/client-server-api/9_user_data.md)
 
-#### 常見錯誤代碼
+10. [模組 (Modules)](https://github.com/message-exp/matrix_organized_spec/tree/main/v1.11/client-server-api/10_modules.md)
 
-`M_FORBIDDEN` 禁止存取
-
-`M_UNKNOWN_TOKEN` 無法辨識指定的 存取或刷新令牌  
-401 HTTP 狀態碼（Unauthorized）：可能有附加回應參數（additional response parameter）`soft_logout`，見 [soft logout](https://spec.matrix.org/v1.11/client-server-api/#soft-logout)
-
-`M_MISSING_TOKEN` 沒給 access token
-
-`M_BAD_JSON` 格式錯誤
-
-`M_NOT_JSON` 沒給有效的 JSON
-
-`M_NOT_FOUND` 找不到
-
-`M_LIMIT_EXCEEDED` 傳太快了，慢一點
-
-`M_UNRECOGNIZED` 伺服器無法理解該請求  
-endpoint 沒被 implement: 傳回 404 (HTTP 狀態碼)  
-endpoint 有 implement，但用了不正確的 HTTP method: 傳回 405（Method Not Allowed）
-
-`M_UNKNOWN` 發生未知錯誤
-
-#### 其他錯誤代碼
-
-`M_UNAUTHORIZED` 請求未正確授權，通常是登入失敗
-
-`M_USER_DEACTIVATED` User ID 已停用。通常用於 prove authentication 的端點，例如 `/login`
-
-`M_USER_IN_USE` 欲註冊的 User ID 已經被使用
-
-`M_INVALID_USERNAME` 嘗試註冊無效的 User ID
-
-`M_ROOM_IN_USE` 提供給 `createRoom` API 的房間別名已被使用
-
-`M_INVALID_ROOM_STATE` 提供給 `createRoom` API 的初始狀態無效
-
-`M_THREEPID_IN_USE` 給予 API 的第三方 pid 無法使用，因為相同的第三方 pid 已在使用中
-
-`M_THREEPID_NOT_FOUND` 由於找不到與第三方 pid 相符的記錄而無法使用給予 API 的第三方 pid 
-
-`M_THREEPID_AUTH_FAILED` 無法對第三方識別碼（identifier）行身份驗證
-
-`M_THREEPID_DENIED` 伺服器不允許此第三方識別碼。這可能發生在伺服器僅允許來自特定網域的電子郵件地址等情況
-
-`M_SERVER_NOT_TRUSTED`
-用戶端的請求使用了此伺服器不信任的第三方伺服器，例如不信任的 identity 伺服器
-
-`M_UNSUPPORTED_ROOM_VERSION` 用戶端請求建立 room 時使用了伺服器不支援的 room 版本
-
-`M_INCOMPATIBLE_ROOM_VERSION` 用戶端嘗試加入伺服器不支援版本的 room。請檢查錯誤回應的 `room_version` 屬性以了解 room 的版本
-
-`M_BAD_STATE`
-無法執行要求的狀態更改，例如嘗試取消禁止未被禁止的用戶
-
-`M_GUEST_ACCESS_FORBIDDEN` room 或資源不允許訪客訪問
-
-`M_CAPTCHA_NEEDED` 需要 Captcha 以完成請求
-
-`M_CAPTCHA_INVALID` 提供的 Captcha 與預期不符
-
-`M_MISSING_PARAM` 請求中缺少必需的參數
-
-`M_INVALID_PARAM` 特定參數的值 錯誤。例如，伺服器預期為整數但收到字串
-
-`M_TOO_LARGE` 請求或實體太大
-
-`M_EXCLUSIVE` 請求的資源被應用服務（application service）保留，或者請求的應用服務尚未創建該資源
-
-`M_RESOURCE_LIMIT_EXCEEDED` 由於主伺服器達到了對其施加的資源限制，無法完成請求。例如，如果主伺服器位於共享託管環境中，則可能會在使用過多記憶體或磁碟空間時達到資源限制。  
-錯誤必須具有 `admin_contact` 欄位，以便接收錯誤的用戶能夠進行聯繫。  
-此錯誤通常出現在嘗試修改狀態的路由（route）（例如：發送訊息、帳戶資料等），而不是僅讀取狀態的路由（例如：`/sync`，取得帳戶資料等）
-
-`M_CANNOT_LEAVE_SERVER_NOTICE_ROOM` 用戶無法拒絕加入伺服器通知 room （server notices room）的邀請。見 [伺服器通知](#server-notices)
-
-#### Rate limiting 速率限制
-
-- 主伺服器**應該**實作速率限制機制以降低過載的風險
-- 超過速率限制錯誤訊息：  
-  ```json
-  {
-    "errcode": "M_LIMIT_EXCEEDED",
-    "error": "string",
-    "retry_after_ms": integer (optional, deprecated)
-  }
-  ```
-- 主伺服器**應該**於 429 狀態碼的任何回應中包含 `Retry-After` 標頭
-- _`retry_after_ms` 已棄用（v1.10）_
-
-### Transaction identifiers 交易識別碼
-
-- client-server API 通常使用 `HTTP PUT` 提交 附帶交易識別碼（由客戶端生成） 的請求
-- 目的：讓主伺服器區分 新請求/重傳請求 （就這樣，沒了）
-- 範圍（scope）：單一裝置及單一 HTTP endpoint（即同一裝置對不同 endpoint 使用相同的交易識別碼，會被當作是不同的請求；登出前與重新登入後的請求也不同。見 [Relationship between access tokens and devices](https://spec.matrix.org/v1.11/client-server-api/#relationship-between-access-tokens-and-devices)）
-- 用戶端：請求完成後，下個請求的 `{txnId}` 值應該更改（未規範具體方式，建議使用單調遞增的整數）
-- 伺服器：如果交易 ID 與先前的請求相同、HTTP 請求的路徑相同  
-  →重傳：主伺服器應傳回與原始請求相同的 HTTP 回應代碼和內容
-- 某些 API 端點可能允許或要求使用不含交易識別碼 的 POST 請求。如果這是可選的（optional），則強烈建議使用 PUT 請求
-
-## 瀏覽器用戶端
-
-- 主伺服器應該回應 pre-flight 請求，並向所有請求提供跨來源資源共用（CORS）標頭
-- 伺服器**必須**預期客戶端會透過 OPTION 請求來接近它們，從而允許用戶端探索 CORS 標頭。  
-  規範中所有 endpoint 都支援 OPTION 方法，但是使用 OPTION 請求時，伺服器**不得**執行 endpoint 定義的任何邏輯
-- 當用戶端向伺服器發出請求時，伺服器應使用該路由的 CORS 標頭進行回應  
-  伺服器針對所有請求傳回的建議 CORS 標頭：  
-  ```
-  Access-Control-Allow-Origin: *
-  Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS
-  Access-Control-Allow-Headers: X-Requested-With, Content-Type, Authorization
-  ```
-
-## 伺服器探索
-
-- 用戶端應該利用自動探索機制，使用使用者的 Matrix ID 決定伺服器的 URL
-- 自動探索僅用於登入時
-- 本節術語：
-  - `PROMPT`
-  - `IGNORE` 停止目前的自動探索機制。若無更多自動探索機制可用，用戶端可使用其他方式來決定所需參數
-  - `FAIL_PROMPT` 通知使用者由於參數無效/空資料及 `PROMPT`，自動探索失敗
-  - `FAIL_ERROR` 通知使用者自動探索未傳回任何可用的 URL。   
-    不要繼續目前的登入流程。此時已經取得了有效資料，但是還沒有伺服器可以為用戶端提供服務。不應嘗試進一步猜測，使用者應決定下一步該做什麼。
-
-### Well-known URI
-
-> [!Note]
-> INFO: 依規範中的 CORS 章節，hosting `.well-known` 的伺服器**應該**提供 CORS 標頭
-
-`.well-known` 方法使用預先定下的位置來指定參數值，流程如下：
-1. 透過在第一個冒號處拆分 Matrix ID，從使用者的 Matrix ID 中提取[伺服器名稱（server name）](https://spec.matrix.org/v1.11/appendices/#server-name)
-2. 依照[語法](https://spec.matrix.org/v1.11/appendices/#server-name)從伺服器名稱中提取主機名稱（host name）
-3. 向 `https://hostname/.well-known/matrix/client` 發出 GET 請求
-   1. 404 => `IGNORE`
-   2. 不是 200 或回應 body 為空 => `FAIL_PROMPT`
-   3. 將回應 body 解析成 JSON 物件
-      1. 無法解析內容 => `FAIL_PROMPT`
-   4. 從 `m.homeserver` 屬性中提取 `base_url`。此值將用作主伺服器的基本 URL
-      1. 未提供此值 => `FAIL_PROMPT`
-   5. 驗證主伺服器基本 URL
-      1. 將其解析為 URL  
-         不是 URL => `FAIL_ERROR`
-      2. 用戶端應該在接受之前透過連接到 [`/_matrix/client/versions`](https://spec.matrix.org/v1.11/client-server-api/#get_matrixclientversions) endpoint 來驗證 URL 是否指向有效的主伺服器，確定它不會傳回錯誤，並解析和驗證資料是否符合預期的回應格式  
-         驗證中的任何步驟失敗 => `FAIL_ERROR`  
-         透過對配置錯誤的簡單檢查來進行驗證，以確保探索到的地址指向有效的主伺服器
-      4. `base_url` 可能以 `/` 結尾
-   6. 如果存在 `m.identity_server` 屬性，請擷取 `base_url` 值以用作身分識別伺服器的基本 URL。此 URL 的驗證與上述步驟相同，但使用 `/_matrix/identity/v2` 作為要連線的 endpoint  
-      `m.identity_server` 屬性存在，但沒有 `base_url` 值 => `FAIL_PROMPT`
-
-{{% http-api spec="client-server" api="wellknown" %}}
-
-{{% http-api spec="client-server" api="versions" %}}
-
-{{% http-api spec="client-server" api="support" %}}
+---
 
 ## 用戶端身份驗證
 
