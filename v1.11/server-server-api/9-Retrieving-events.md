@@ -1,9 +1,6 @@
 # Retrieving events
 
-In some circumstances, a homeserver may be missing a particular event or
- information about the room which cannot be easily determined from
- backfilling. These APIs provide homeservers with the option of getting
- events and the state of the room at a given point in the timeline.
+- 有些時候房間會缺事件
 
 在某些情況下，homeserver 可能會缺少特定事件或房間資訊，這些資訊無法通過回填輕易確定。
 這些 API 為 homeserver 提供了在時間線中的給定點獲取事件和房間狀態的選項。
