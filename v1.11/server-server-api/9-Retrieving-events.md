@@ -1,12 +1,25 @@
 # Retrieving events
 
-- 有些時候房間會缺事件
+- 有些時候房間會缺事件，就需要些API去補
+- GET /\_matrix/federation/v1/event/{eventId}
+  - 獲取該event的詳細pdu
+  - 雖然200 response裡面是寫pdus但就只會回應一個
+- GET /\_matrix/federation/v1/state/{roomId}
+  - path設定roomId以及query設定eventId來尋找特定事件下的房間狀態
+  - auth_chain是為了證明接下來事件的合法性
+  - pdus是放房間的完全解析狀態，想像成特定event時間下當時房間的各種設定檔
+- GET /\_matrix/federation/v1/state\_ids/{roomId}
+  - 同上，但只返回事件的id而不是全部詳細資訊
+  - 找不到會有404 response
+- GET/\_matrix/federation/v1/timestamp\_to\_event/{roomId}
+  - v1.6 new
+  - 這個api主要是查詢某個時間戳之前/之後最接近的事件
 
 在某些情況下，homeserver 可能會缺少特定事件或房間資訊，這些資訊無法通過回填輕易確定。
 這些 API 為 homeserver 提供了在時間線中的給定點獲取事件和房間狀態的選項。
 
 <!-- markdownlint-disable -->
-<h1>GET <a>/\_matrix/federation/v1/event/{eventId}</a></h1> 
+<h1>GET <a>/_matrix/federation/v1/event/{eventId}</a></h1> 
 <!-- markdownlint-enable -->
 
 檢索單個事件。
