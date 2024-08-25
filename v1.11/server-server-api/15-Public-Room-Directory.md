@@ -31,7 +31,6 @@
 <h1>GET <a>/_matrix/federation/v1/publicRooms</a></h1> 
 <!-- markdownlint-enable -->
 
-
 獲取該主伺服器的所有公開房間。這不應該返回列在其他主伺服器目錄中的房間，只返回列在接收伺服器目錄中的房間。
 
 | 速率限制: | No |
@@ -246,4 +245,3 @@ PublicRoomsChunk
   "total_room_count_estimate": 115
 }
 ```
-
