@@ -7,6 +7,13 @@
   - [3.3 Client TLS Certificates](#33-client-tls-certificates)
 <!-- markdownlint-enable -->
 
+---
+
+- 主要是說明如何透過金鑰來簽名每個資訊
+- 後面的部分主要是說如何兼容舊版本
+- 確認伺服器身份前不發送請求
+- 因為伺服器會需要檢查TLS證書，所以通常是在HTTP層進行身份驗證
+
 ## 3.1 Request Authentication
 
 每個由主伺服器發出的 HTTP 請求都使用公鑰數字簽名進行身份驗證。

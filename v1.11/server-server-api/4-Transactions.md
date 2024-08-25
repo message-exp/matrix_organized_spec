@@ -4,6 +4,20 @@
       - [Ephemeral Data Unit](#ephemeral-data-unit)
       - [PDU Processing Result](#pdu-processing-result)
 
+---
+
+- 傳輸消息是以交易為單位傳輸，透過EDUs和PDUs組成
+- 一次傳輸最多50個PDUs和100個EDUs
+- PUT /_matrix/federation/v1/send/{txnId}
+  - 傳輸交易
+  - 傳送出去後必須等待or重試到回應200才能再發出另一個交易
+  - 不一定要傳送EDUs，但必須有PDUs
+  - EDUs格式主要就是contents和type
+  - PDUs格式會依照不同的房間版本規範而有所不同
+  - 200回應中會回應哪些PDU成功哪些失敗
+
+---
+
 在homeserver之間傳輸EDUs和PDUs是通過交易消息（Transaction messages）進行的，
 這些消息被編碼為JSON對象，
 通過HTTP PUT請求傳送。

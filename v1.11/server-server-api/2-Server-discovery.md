@@ -8,6 +8,39 @@
     - [2.3.1 Publishing Keys](#231-publishing-keys)
     - [2.3.2 Querying Keys Through Another Server](#232-querying-keys-through-another-server)
 
+---
+
+- 有hostname如何設定Host
+  - IP: 直接用
+  - 非IP但有port: dns解析IP
+  - 非IP沒port: `/.well-known/matrix/server`請求詳細
+    - 是IP: 直接用
+    - 非IP但有port: dns解析
+    - 非IP沒port: 查SRV紀錄
+    - 非IP沒port沒SRV紀錄: 用port 8448請求
+  - 以上導致錯誤回應: 查SRV紀錄
+  - 以上都找不到:用dn和port 8448
+  - 用hostname查SRV主要是不是每個dns都安全
+  - SRV紀錄結果不騰是cname
+  - **所有情況home server都需要提供該IP、網域相對應的證書
+- GET /.well-known/matrix/server
+  - 請求hostname的ip和port
+- GET /\_matrix/federation/v1/version
+  - 獲得該伺服器版本名稱以及版本號碼
+- 獲取伺服器公鑰:
+  - old_verify_keys: 提供過期金鑰
+  - server_name: 提供要求的伺服器名稱
+  - signatures: 提供自己或公證伺服器簽名過的金鑰們
+  - valid_until_ts: 提供有效期限
+  - verify_keys: 簽名公鑰
+  - 主要就是透過verify_key驗證該伺服器簽名的金鑰，透過其他伺服器提供的來驗證其他伺服器的簽名
+  - GET /_matrix/key/v2/server
+    - 獲得該伺服器且簽名過的公鑰，同時也會獲得已過期的金鑰
+  - POST /\_matrix/key/v2/query
+    - 可透過request body來查詢多個伺服器在特定時間戳前有效的金鑰
+  - GET /_matrix/key/v2/query/{serverName}
+    - 其他與上面差不多，就變成get一個特定的伺服器
+
 ## 2.1 Resolving server names
 
 每個 Matrix 主伺服器的server-name是由hostname和port來去辨認，
@@ -79,13 +112,13 @@
    - `Host` 標頭包含 `<hostname>`。
    - 目標伺服器必須提供 `<hostname>` 的有效證書。
 
-5. ~~**[已棄用]** 如果 `/.well-known` 請求導致錯誤回應，
-並且未找到 `_matrix-fed._tcp.<hostname>` 的 SRV 記錄，
-則通過解析 `_matrix._tcp.<hostname>` 的 SRV 記錄找到伺服器。
-這可能會導致主機名（使用 AAAA 或 A 記錄解析）和端口。
-請求發送到解析出的 IP 地址和端口，
-`Host` 標頭包含 `<hostname>`。
-目標伺服器必須提供 `<hostname>` 的有效證書。~~
+5. ~~**[已棄用]** 如果 `/.well-known` 請求導致錯誤回應，~~
+~~並且未找到 `_matrix-fed._tcp.<hostname>` 的 SRV 記錄，~~
+~~則通過解析 `_matrix._tcp.<hostname>` 的 SRV 記錄找到伺服器。~~
+~~這可能會導致主機名（使用 AAAA 或 A 記錄解析）和端口。~~
+~~請求發送到解析出的 IP 地址和端口，~~
+~~`Host` 標頭包含 `<hostname>`。~~
+~~目標伺服器必須提供 `<hostname>` 的有效證書。~~
 
 6. 如果 `/.well-known` 請求返回錯誤回應，並且未找到 SRV 記錄，
    - 使用 CNAME、AAAA 和 A 記錄解析 IP 地址。
@@ -352,8 +385,6 @@ verify_keys
 <h1>POST <a>/\_matrix/key/v2/query</a></h1> 
 <!-- markdownlint-enable -->
 
----
-
 批量格式查詢多個伺服器的密鑰。接收（公證）伺服器必須對被查詢伺服器返回的密鑰進行簽名。
 
 | 速率限制： | 否 |
@@ -471,17 +502,17 @@ Request body example
 }
 ```
 
-\*\*補充
-驗證時是將verify_keys當作驗證公鑰
-"signatures": {
+\*\*補充:
+驗證時是將verify_keys當作驗證公鑰，
+`"signatures": {
   "example.org": {
     "ed25519:abc123": "VGhpcyBzaG91bGQgYWN0dWFsbHkgYmUgYSBzaWduYXR1cmU"
   },
-}
-當作代驗證的資訊
-同時可能會傳來其他公證伺服器保存的公鑰
-就要先獲取其公鑰
-在針對此公鑰和資料去驗證
+}`
+當作代驗證的資訊，
+同時可能會傳來其他公證伺服器保存的公鑰，
+就要先獲取其公鑰，
+在針對此公鑰和資料去驗證。
 
 <!-- markdownlint-disable -->
 <h1>GET <a>/_matrix/key/v2/query/{serverName}</a></h1> 

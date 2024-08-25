@@ -1,5 +1,13 @@
 # Backfilling and retrieving missing events
 
+- 可以透過backfill來獲取某個房間以前的狀態
+- GET /\_matrix/federation/v1/backfill/{roomId}
+  - 這就是那個api，會需要提供在哪個房間從什麼事件以後開始回填幾個
+- POST /\_matrix/federation/v1/get\_missing\_events/{roomId}
+  - 在某個room裡面有哪些事件
+  - 會需要提供最新和最舊的事件、上限和深度
+- 如果某個事件失敗的話也還是會200回覆，但回傳時會說明哪些有錯誤
+
 一旦一個 homeserver 加入了房間，它會接收到該房間中其他 homeserver 發出的所有事件，從而了解該房間從那一刻起的全部歷史。由於房間內的使用者可以通過 `/messages` 客戶端 API 端點請求歷史記錄，可能會出現這種情況：他們可能回溯到 homeserver 本身還不是該房間成員之前的歷史。
 
 為了應對這種情況，聯邦 API 提供了一個 `/messages` 客戶端 API 的伺服器到伺服器的類比，允許一個 homeserver 從另一個 homeserver 獲取歷史記錄。這就是 `/backfill` API。

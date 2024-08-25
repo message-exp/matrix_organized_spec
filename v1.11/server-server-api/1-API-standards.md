@@ -1,5 +1,14 @@
 # 1. API 標準
 
+- 通訊由HTTPS交換JSON
+- POST和PUT要提供`Content-Type` 標頭為 `application/json`的JSON請求主體
+- json使用utf-8編碼
+- 目標server要提供簽署的tls證書
+- 證書授權信任機構建議用系統內建，同時提供可覆蓋預設的方法
+- 可設定跳過驗證，例如測試環境或.onion
+- 應為證書發送SNI，但如果是IP地址那不該發送
+- 收到不支援/未知請求直接404，已知端點但不支援用405
+
 Matrix 中伺服器-伺服器通訊的強制基線是通過 HTTPS API 交換 JSON 對象。
 未來可能會指定更高效的傳輸方式作為可選擴展。
 
