@@ -2,7 +2,7 @@
 
 1. 查詢是從家庭服務器 (homeserver) 獲取資源信息的方式,如用戶或房間信息。
 2. 主要有三種查詢端點:
-   a) 通用查詢端點: `/\_matrix/federation/v1/query/{queryType}`
+   a 通用查詢端點: `/\_matrix/federation/v1/query/{queryType}`
    b) 目錄查詢端點: `/\_matrix/federation/v1/query/directory`
    c) 個人資料查詢端點: `/\_matrix/federation/v1/query/profile`
 3. 目錄查詢 (/query/directory):
